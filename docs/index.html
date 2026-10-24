@@ -51,7 +51,7 @@
   .hero { padding: 72px 0 36px; display: grid; grid-template-columns: 112px 1fr; gap: 28px; align-items: center; }
   .hero img { width: 112px; height: 112px; border-radius: 28px; box-shadow: 0 16px 40px rgba(0,0,0,.55); }
   .hero h1 { font-size: 56px; font-weight: 800; letter-spacing: -.03em; margin: 0; line-height: 1; }
-  .hero h1 span { color: var(--accent-2); }
+  .hero h1 .wordmark { display: block; height: .82em; width: auto; overflow: visible; }
   .hero p { margin: 10px 0 0; color: var(--dim); font-size: 18px; max-width: 620px; }
   .pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
   .pill { font-size: 12px; font-weight: 600; color: var(--accent-2); background: var(--accent-soft); border: 1px solid rgba(70,168,115,.35); border-radius: 999px; padding: 4px 10px; }
@@ -130,7 +130,7 @@
   <header class="hero">
     <img src="otto-256.png" alt="Otto icon: three faders on a green tile">
     <div>
-      <h1><span>Otto</span></h1>
+      <h1><svg class="wordmark" viewBox="-7 13 314 74" role="img" aria-label="Otto"><circle cx="42" cy="50" r="30" fill="none" stroke="var(--text)" stroke-width="13"/><rect x="108.5" y="20" width="13" height="60" rx="6.5" fill="var(--text)" opacity=".35"/><rect x="92" y="38" width="46" height="14" rx="7" fill="var(--accent-2)"/><rect x="178.5" y="20" width="13" height="60" rx="6.5" fill="var(--text)" opacity=".35"/><rect x="162" y="58" width="46" height="14" rx="7" fill="var(--accent-2)"/><circle cx="258" cy="50" r="30" fill="none" stroke="var(--text)" stroke-width="13"/></svg></h1>
       <p>Per-app volume for Windows, done right. One hand on the mouse, no key held, nothing to install.</p>
       <div class="pills">
         <span class="pill">Windows 10 / 11</span><span class="pill">x64</span><span class="pill">Portable</span><span class="pill">Free</span>
@@ -204,6 +204,7 @@
 
   <h2>Changelog</h2>
   <div class="log">
+    <div class="ver"><div class="tag">0.4.5</div><ul><li>Otto has its own lettering: the name is drawn, not typed. The two Ts are faders and their crossbars are the knobs, set at two heights. It's in the settings window, on this page and in the README banner.</li></ul></div>
     <div class="ver"><div class="tag">0.4.4</div><ul><li>New look for the icon: the fader bars are dark green instead of grey, in the tray, the app icon and this page.</li></ul></div>
     <div class="ver"><div class="tag">0.4.3</div><ul><li>Fixed 0.4.2 mistaking a visible tray icon for a missing one, which made the icon blink every 30 seconds. The icon repair now only acts when the icon is really gone.</li></ul></div>
     <div class="ver"><div class="tag">0.4.2</div><ul><li>The tray icon fixes itself: right after Windows starts, Otto could run with no icon in the tray. Otto now checks that its icon is really there (after start, every 30 s, after sleep or unlock) and puts it back if it went missing.</li></ul></div>
