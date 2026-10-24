@@ -28,7 +28,7 @@
   <!-- icon tile -->
   <g transform="translate(88,88)">
     <rect width="144" height="144" rx="32" fill="url(#tile)"/>
-    <g stroke="#ffffff" stroke-opacity="0.45" stroke-width="7" stroke-linecap="round">
+    <g stroke="#1B4D33" stroke-width="7" stroke-linecap="round">
       <line x1="43" y1="32" x2="43" y2="112"/>
       <line x1="72" y1="32" x2="72" y2="112"/>
       <line x1="101" y1="32" x2="101" y2="112"/>

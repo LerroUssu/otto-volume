@@ -224,7 +224,7 @@ public sealed class TrayIcon : IDisposable
 
             float[] xs = { 0.30f, 0.50f, 0.70f };
             float[] ys = { 0.62f, 0.40f, 0.72f };
-            using var track = new Pen(Color.FromArgb(120, 255, 255, 255), Math.Max(1f, size * 0.07f)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            using var track = new Pen(Color.FromArgb(0x1B, 0x4D, 0x33), Math.Max(1f, size * 0.07f)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
             using var knob = new SolidBrush(Color.White);
             for (int i = 0; i < 3; i++)
             {
