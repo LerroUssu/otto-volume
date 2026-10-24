@@ -1,0 +1,163 @@
+<title>Otto Logo Ideas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap">
+<style>
+/* Layout: one column of two picking sections (icon marks, then the drawn name), each a grid of tiles with a tray-size preview. */
+:root {
+  --bg: #0b0f0e; --panel: #121817; --edge: #26302d; --fg: #eef3f1; --mut: #8d9a96;
+  --green: #46a873; --deep: #245e40; --track: #1b4d33; --ribbon: #e0474c; --hair: #b9c3c0;
+  --sel: #6fcb97;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #f3f6f5; --panel: #ffffff; --edge: #d9e2df; --fg: #142019; --mut: #5d6b66; --sel: #2f8a5a; color-scheme: light } }
+:root[data-theme="light"] { --bg: #f3f6f5; --panel: #ffffff; --edge: #d9e2df; --fg: #142019; --mut: #5d6b66; --sel: #2f8a5a; color-scheme: light }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body); -webkit-font-smoothing: antialiased }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 34px }
+header { display: flex; flex-direction: column; gap: 8px }
+h1 { margin: 0; font-weight: 800; font-size: clamp(30px, 5vw, 42px); line-height: 1.05; text-wrap: balance }
+.lede { margin: 0; color: var(--mut); max-width: 62ch }
+section { display: flex; flex-direction: column; gap: 14px }
+h2 { margin: 0; font-size: 21px; font-weight: 800; display: flex; align-items: baseline; gap: 10px }
+h2 small { font-size: 13px; font-weight: 600; color: var(--mut) }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px }
+.grid.wide { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) }
+.tile { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--panel); border: 1.5px solid var(--edge); border-radius: 16px; cursor: pointer; text-align: left; color: inherit; font: inherit; transition: border-color .15s, transform .15s }
+.tile:hover { border-color: color-mix(in srgb, var(--sel) 55%, var(--edge)) }
+.tile:focus-visible { outline: 2px solid var(--sel); outline-offset: 2px }
+.tile[aria-pressed="true"] { border-color: var(--sel); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sel) 25%, transparent) }
+.tile[aria-pressed="true"] .tag { background: var(--sel); color: #08120d; border-color: var(--sel) }
+.stage { display: grid; place-items: center; aspect-ratio: 16 / 10; border-radius: 12px; background: #0f1314; max-width: 100% }
+.stage.light { background: #e9eeec }
+.stage svg { width: 62%; height: 62%; overflow: visible }
+.wide .stage svg { width: 86%; height: 70% }
+.meta { display: flex; align-items: center; gap: 10px; min-width: 0 }
+.tag { flex: none; font-size: 12px; font-weight: 800; letter-spacing: .06em; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--edge); color: var(--mut) }
+.meta b { font-weight: 800 }
+.tile p { margin: 0; color: var(--mut); font-size: 14px }
+.tray { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: none }
+.tray span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; background: #202626 }
+.tray span.l { background: #e6eae9 }
+.tray svg { width: 20px; height: 20px }
+.bar { position: sticky; bottom: max(12px, env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; background: var(--panel); border: 1.5px solid var(--edge); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25) }
+.bar .pick { font-weight: 700 }
+.bar .pick em { font-style: normal; color: var(--sel) }
+.bar .state { margin-left: auto; color: var(--mut); font-size: 14px }
+.note { color: var(--mut); font-size: 14px; max-width: 70ch; margin: 0 }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Otto logo ideas</h1>
+    <p class="lede">Six icon marks and five drawn versions of the name. The name isn't a font: each letter is drawn as shapes, so it's ours. Tap one of each.</p>
+  </header>
+
+  <section aria-labelledby="h-marks">
+    <h2 id="h-marks">Icon <small>tray, app icon, website</small></h2>
+    <div class="grid" id="marks"></div>
+  </section>
+
+  <section aria-labelledby="h-words">
+    <h2 id="h-words">The name <small>settings window, website, release page</small></h2>
+    <div class="grid wide" id="words"></div>
+    <p class="note">Any of these can also be the name in a real font later (for the website text), but the logo version stays drawn by hand.</p>
+  </section>
+
+  <div class="bar" role="status" aria-live="polite">
+    <span class="pick">Icon: <em id="p-mark">none yet</em></span>
+    <span class="pick">Name: <em id="p-word">none yet</em></span>
+    <span class="state" id="state">Your picks save here for Claude</span>
+  </div>
+</div>
+
+<script>
+const G = '#46a873', D = '#245e40', T = '#1b4d33', R = '#e0474c', W = '#ffffff', H = '#b9c3c0';
+const tileBg = (id) => `<defs><linearGradient id="g${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${G}"/><stop offset="1" stop-color="${D}"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#g${id})"/>`;
+const knob = (cx, cy, r, ang, fill = W, line = T) => { const a = (ang - 90) * Math.PI / 180; return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><line x1="${cx}" y1="${cy}" x2="${(cx + Math.cos(a) * r * .72).toFixed(1)}" y2="${(cy + Math.sin(a) * r * .72).toFixed(1)}" stroke="${line}" stroke-width="${(r * .22).toFixed(1)}" stroke-linecap="round"/>`; };
+const ticks = (cx, cy, r, from, to, n, color, sw) => { let s = ''; for (let i = 0; i < n; i++) { const a = (from + (to - from) * i / (n - 1) - 90) * Math.PI / 180; s += `<line x1="${(cx + Math.cos(a) * r).toFixed(1)}" y1="${(cy + Math.sin(a) * r).toFixed(1)}" x2="${(cx + Math.cos(a) * (r + 6)).toFixed(1)}" y2="${(cy + Math.sin(a) * (r + 6)).toFixed(1)}" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"/>`; } return s; };
+
+const MARKS = [
+  { k: 'A', name: 'Faders', note: 'Today\'s icon with the dark green bars. Safe and clear.',
+    svg: (id) => tileBg(id) + [30, 50, 70].map((x, i) => `<line x1="${x}" y1="22" x2="${x}" y2="78" stroke="${T}" stroke-width="6" stroke-linecap="round"/><circle cx="${x}" cy="${[61, 39, 72][i]}" r="10" fill="${W}"/>`).join('') },
+  { k: 'B', name: 'Twin knobs', note: 'O-T-T-O is a palindrome: two volume knobs facing each other, like the two Os.',
+    svg: (id) => tileBg(id) + knob(31, 50, 15, -50) + knob(69, 50, 15, 50) + `<line x1="46" y1="50" x2="54" y2="50" stroke="${T}" stroke-width="5" stroke-linecap="round"/>` },
+  { k: 'C', name: 'Every voice', note: 'Otto hears every voice around him: sound rings spreading from one point.',
+    svg: (id) => tileBg(id) + `<circle cx="30" cy="62" r="8" fill="${W}"/>` + [22, 36, 50].map((r, i) => `<path d="M ${30 + r * Math.cos(-1.35)} ${62 + r * Math.sin(-1.35)} A ${r} ${r} 0 0 1 ${30 + r * Math.cos(0.15)} ${62 + r * Math.sin(0.15)}" fill="none" stroke="${i === 0 ? W : T}" stroke-width="7" stroke-linecap="round"/>`).join('') },
+  { k: 'D', name: 'Ribbon', note: 'His red ribbon tied on a volume ramp: the green cloak, grey and red in one mark.',
+    svg: (id) => tileBg(id) + [0, 1, 2, 3].map((i) => `<rect x="${24 + i * 14}" y="${70 - (i + 1) * 11}" width="9" height="${(i + 1) * 11}" rx="4.5" fill="${i === 3 ? W : (i === 2 ? H : T)}"/>`).join('') + `<path d="M62 30 l-9 -7 v14z M62 30 l9 -7 v14z" fill="${R}"/><circle cx="62" cy="30" r="3.4" fill="${R}"/>` },
+  { k: 'E', name: 'Merchant coin', note: 'Otto is a merchant: a coin with a dial edge, one fader across the middle.',
+    svg: (id) => `<circle cx="50" cy="50" r="46" fill="${G}"/><circle cx="50" cy="50" r="46" fill="none" stroke="${D}" stroke-width="4"/>` + ticks(50, 50, 30, -135, 135, 11, T, 3) + `<line x1="34" y1="50" x2="66" y2="50" stroke="${T}" stroke-width="6" stroke-linecap="round"/><circle cx="56" cy="50" r="9" fill="${W}"/>` },
+  { k: 'F', name: 'OT monogram', note: 'A big O with a T inside whose crossbar is a slider. Reads as a letter and a control.',
+    svg: (id) => tileBg(id) + `<circle cx="50" cy="50" r="30" fill="none" stroke="${W}" stroke-width="9"/><line x1="36" y1="40" x2="64" y2="40" stroke="${T}" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="40" x2="50" y2="66" stroke="${T}" stroke-width="6" stroke-linecap="round"/><circle cx="43" cy="40" r="7" fill="${W}"/>` },
+];
+
+// The name, drawn: O = ring, T = two bars; each idea changes those shapes. ViewBox 0 0 300 100.
+const O = (cx, extra = '') => `<circle cx="${cx}" cy="50" r="30" fill="none" stroke="var(--ink)" stroke-width="13"/>` + extra;
+const Tl = (x, crossY = 22, color = 'var(--ink)') => `<rect x="${x - 26}" y="${crossY - 6.5}" width="52" height="13" rx="6.5" fill="${color}"/><rect x="${x - 6.5}" y="20" width="13" height="60" rx="6.5" fill="${color}"/>`;
+const WORDS = [
+  { k: '1', name: 'Knob Os', note: 'Both Os are knobs with a pointer, set to different levels.',
+    svg: () => O(42, `<line x1="42" y1="50" x2="28" y2="34" stroke="${G}" stroke-width="8" stroke-linecap="round"/>`) + Tl(115) + Tl(185) + O(258, `<line x1="258" y1="50" x2="275" y2="38" stroke="${G}" stroke-width="8" stroke-linecap="round"/>`) },
+  { k: '2', name: 'Fader Ts', note: 'The two Ts are faders: the crossbar is the knob, at two heights.',
+    svg: () => O(42) + `<rect x="108.5" y="20" width="13" height="60" rx="6.5" fill="var(--ink)" opacity=".35"/><rect x="92" y="38" width="46" height="14" rx="7" fill="${G}"/><rect x="178.5" y="20" width="13" height="60" rx="6.5" fill="var(--ink)" opacity=".35"/><rect x="162" y="58" width="46" height="14" rx="7" fill="${G}"/>` + O(258) },
+  { k: '3', name: 'Mirror', note: 'A palindrome, so the right half is the left half echoing back, softer.',
+    svg: () => `<g>${O(42)}${Tl(115)}</g><g opacity=".38">${O(258)}${Tl(185)}</g><line x1="150" y1="10" x2="150" y2="90" stroke="${G}" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>` },
+  { k: '4', name: 'Sound Os', note: 'Each O is a set of sound rings: Otto hearing every voice.',
+    svg: () => [42, 258].map((c) => `<circle cx="${c}" cy="50" r="31" fill="none" stroke="var(--ink)" stroke-width="7"/><circle cx="${c}" cy="50" r="18" fill="none" stroke="${G}" stroke-width="7"/><circle cx="${c}" cy="50" r="5.5" fill="var(--ink)"/>`).join('') + Tl(115) + Tl(185) },
+  { k: '5', name: 'Ribbon dot', note: 'Heavy rounded letters, his red ribbon tied on the last T.',
+    svg: () => O(42) + Tl(115) + Tl(185) + `<path d="M185 16 l-10 -8 v16z M185 16 l10 -8 v16z" fill="${R}"/><circle cx="185" cy="16" r="4" fill="${R}"/>` + O(258) },
+];
+
+const pick = { mark: null, word: null };
+const marksEl = document.getElementById('marks'), wordsEl = document.getElementById('words');
+function trayPair(svgInner, id) {
+  const s = (sfx) => `<svg viewBox="0 0 100 100" aria-hidden="true">${svgInner(id + sfx)}</svg>`;
+  return `<span class="tray" aria-hidden="true"><span>${s('d')}</span><span class="l">${s('l')}</span></span>`;
+}
+MARKS.forEach((m, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'tile'; b.id = 'mark-' + m.k; b.setAttribute('aria-pressed', 'false');
+  b.innerHTML = `<div class="stage"><svg viewBox="0 0 100 100" role="img" aria-label="${m.name}">${m.svg('m' + i)}</svg></div>
+    <div class="meta"><span class="tag">${m.k}</span><b>${m.name}</b>${trayPair(m.svg, 't' + i)}</div><p>${m.note}</p>`;
+  b.addEventListener('click', () => choose('mark', m.k));
+  marksEl.appendChild(b);
+});
+WORDS.forEach((w) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'tile'; b.id = 'word-' + w.k; b.setAttribute('aria-pressed', 'false');
+  b.innerHTML = `<div class="stage" style="--ink:#eef3f1"><svg viewBox="0 0 300 100" role="img" aria-label="Otto, ${w.name}">${w.svg()}</svg></div>
+    <div class="stage light" style="--ink:#142019;aspect-ratio:16/5"><svg viewBox="0 0 300 100" aria-hidden="true">${w.svg()}</svg></div>
+    <div class="meta"><span class="tag">${w.k}</span><b>${w.name}</b></div><p>${w.note}</p>`;
+  b.addEventListener('click', () => choose('word', w.k));
+  wordsEl.appendChild(b);
+});
+
+const stateEl = document.getElementById('state');
+function render() {
+  for (const m of MARKS) document.getElementById('mark-' + m.k).setAttribute('aria-pressed', String(pick.mark === m.k));
+  for (const w of WORDS) document.getElementById('word-' + w.k).setAttribute('aria-pressed', String(pick.word === w.k));
+  const mk = MARKS.find((m) => m.k === pick.mark), wd = WORDS.find((w) => w.k === pick.word);
+  document.getElementById('p-mark').textContent = mk ? mk.k + ' · ' + mk.name : 'none yet';
+  document.getElementById('p-word').textContent = wd ? wd.k + ' · ' + wd.name : 'none yet';
+}
+let db = null;
+async function choose(kind, k) {
+  pick[kind] = pick[kind] === k ? null : k;
+  render();
+  if (!db) { stateEl.textContent = 'Picked here; saving is off in this view'; return; }
+  stateEl.textContent = 'Saving…';
+  try { await db.doc('picks/choice').set({ mark: pick.mark, word: pick.word, at: new Date().toISOString() }); stateEl.textContent = 'Saved for Claude'; }
+  catch (e) { stateEl.textContent = 'Couldn’t save: ' + ((e && e.message) || 'error'); }
+}
+render();
+(async () => {
+  try {
+    db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+    if (!db) return;
+    const snap = await db.doc('picks/choice').get();
+    const d = snap && (snap.data ? snap.data() : snap);
+    if (d && (d.mark || d.word)) { pick.mark = d.mark || null; pick.word = d.word || null; render(); stateEl.textContent = 'Saved for Claude'; }
+  } catch { /* store unavailable: picks stay on the page */ }
+})();
+</script>
