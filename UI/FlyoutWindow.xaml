@@ -37,7 +37,7 @@
 
                     <StackPanel Grid.Column="1" Margin="4,0,8,0" VerticalAlignment="Center">
                         <TextBlock x:Name="NameText" Text="{Binding Name}" Style="{StaticResource BodyText}" FontWeight="Medium" TextTrimming="CharacterEllipsis" Margin="0,0,0,-2"/>
-                        <Slider Style="{StaticResource FaderSlider}" Value="{Binding VolumePercent, Mode=TwoWay}"/>
+                        <Slider Style="{StaticResource FaderSlider}" Maximum="{Binding MaxPercent}" Value="{Binding VolumePercent, Mode=TwoWay}"/>
                         <Grid Height="2" Margin="0,-4,0,0">
                             <Rectangle x:Name="Meter" Fill="{DynamicResource AccentBrush}" Opacity="0.75" RadiusX="1" RadiusY="1" RenderTransformOrigin="0,0.5">
                                 <Rectangle.RenderTransform>
@@ -58,6 +58,9 @@
                 <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
                     <Setter TargetName="IconRect" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="IconFallback" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsBoosted}" Value="True">
+                    <Setter TargetName="PercentText" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Muted}" Value="True">
                     <Setter TargetName="IconRect" Property="Opacity" Value="0.4"/>
@@ -93,7 +96,7 @@
                         </Button>
                         <StackPanel Grid.Column="1" Margin="4,0,8,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Master.DeviceName}" Style="{StaticResource BodyText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,0,0,-2"/>
-                            <Slider Style="{StaticResource FaderSlider}" Value="{Binding Master.VolumePercent, Mode=TwoWay}"/>
+                            <Slider Style="{StaticResource FaderSlider}" Maximum="{Binding Master.MaxPercent}" Value="{Binding Master.VolumePercent, Mode=TwoWay}"/>
                             <Grid Height="2" Margin="0,-4,0,0">
                                 <Rectangle Fill="{DynamicResource AccentBrush}" Opacity="0.75" RadiusX="1" RadiusY="1" RenderTransformOrigin="0,0.5">
                                     <Rectangle.RenderTransform>
@@ -102,7 +105,17 @@
                                 </Rectangle>
                             </Grid>
                         </StackPanel>
-                        <TextBlock x:Name="MasterPercent" Grid.Column="2" Text="{Binding Master.VolumePercent, StringFormat={}{0:0}}" Style="{StaticResource DimText}" FontWeight="Medium" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="MasterPercent" Grid.Column="2" Text="{Binding Master.VolumePercent, StringFormat={}{0:0}}" FontWeight="Medium" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource DimText}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Master.IsBoosted}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </Grid>
                 </Border>
 

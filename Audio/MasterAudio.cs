@@ -15,6 +15,7 @@ public sealed class MasterAudio : ObservableObject
     private double _peak;
     private string _deviceName = "No output device";
     private bool _syncing;
+    private int _maxPercent = 100;
 
     public MasterAudio(Dispatcher ui) { _ui = ui; }
 
@@ -22,14 +23,29 @@ public sealed class MasterAudio : ObservableObject
     public double Peak { get => _peak; set => Set(ref _peak, value); }
     public bool IsBound => _endpoint != null;
 
+    /// <summary>Top of the slider: 100, or the boost limit when a spare output is there (boosts every app).</summary>
+    public int MaxPercent
+    {
+        get => _maxPercent;
+        internal set
+        {
+            if (!Set(ref _maxPercent, value)) return;
+            if (_volumePercent > value) { _volumePercent = value; Raise(nameof(VolumePercent)); Raise(nameof(IsBoosted)); }
+        }
+    }
+
+    public bool IsBoosted => _volumePercent > 100;
+
     public double VolumePercent
     {
         get => _volumePercent;
         set
         {
-            var v = Math.Round(Math.Clamp(value, 0, 100));
-            if (!Set(ref _volumePercent, v) || _syncing || _endpoint == null) return;
-            try { _endpoint.MasterVolumeLevelScalar = (float)(v / 100.0); } catch (Exception ex) { Log.Error("master volume", ex); }
+            var v = Math.Round(Math.Clamp(value, 0, _maxPercent));
+            if (!Set(ref _volumePercent, v)) return;
+            Raise(nameof(IsBoosted));
+            if (_syncing || _endpoint == null) return;
+            try { _endpoint.MasterVolumeLevelScalar = (float)(Math.Min(v, 100) / 100.0); } catch (Exception ex) { Log.Error("master volume", ex); }
         }
     }
 
@@ -43,7 +59,9 @@ public sealed class MasterAudio : ObservableObject
         }
     }
 
-    public void Nudge(int percentDelta) => VolumePercent += percentDelta;
+    /// <summary>Wheel steps stop at 100 % once on the way up; the next step goes into boost.</summary>
+    public void Nudge(int percentDelta)
+        => VolumePercent = _volumePercent < 100 && _volumePercent + percentDelta > 100 ? 100 : _volumePercent + percentDelta;
 
     internal void Bind(MMDevice device)
     {
@@ -75,7 +93,12 @@ public sealed class MasterAudio : ObservableObject
     private void Sync(float volume, bool muted)
     {
         _syncing = true;
-        try { VolumePercent = volume * 100.0; Muted = muted; }
+        try
+        {
+            double v = volume * 100.0;
+            if (v >= 99.95 && _volumePercent > 100) v = _volumePercent; // boosted: the endpoint sits at 100 %
+            VolumePercent = v; Muted = muted;
+        }
         finally { _syncing = false; }
     }
 }

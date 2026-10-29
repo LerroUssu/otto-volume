@@ -95,6 +95,34 @@
                     <TextBlock Style="{StaticResource DimText}" FontSize="11" Foreground="{StaticResource TextFaintBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
                                Text="Drag the mixer panel anywhere to keep it open; the pin button does the same. Esc or the pin closes it again."/>
 
+                    <!-- ===== boost ===== -->
+                    <TextBlock Text="BOOST" Style="{StaticResource SectionTitle}"/>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding BoostEnabled}" Content="Let the sliders go past 100 %" Margin="0,0,0,12"/>
+                    <StackPanel IsEnabled="{Binding BoostEnabled}">
+                        <TextBlock Text="up to" Style="{StaticResource DimText}" Margin="0,0,0,6"/>
+                        <WrapPanel Margin="0,0,0,12">
+                            <RadioButton Style="{StaticResource Segment}" Content="150 %" IsChecked="{Binding Max150}"/>
+                            <RadioButton Style="{StaticResource Segment}" Content="200 %" IsChecked="{Binding Max200}"/>
+                            <RadioButton Style="{StaticResource Segment}" Content="300 %" IsChecked="{Binding Max300}"/>
+                        </WrapPanel>
+                        <TextBlock Text="boosted apps go through" Style="{StaticResource DimText}" Margin="0,0,0,6"/>
+                        <ItemsControl ItemsSource="{Binding BoostOutputs}" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="BoostOutput" Content="{Binding Name}" IsChecked="{Binding IsChecked}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource DimText}" FontSize="11" Foreground="{StaticResource TextFaintBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Text="{Binding BoostOutputName, StringFormat=Using {0}}" Visibility="{Binding BoostHasOutput, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock Style="{StaticResource DimText}" FontSize="11" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Text="Needs a spare output: VB-CABLE, or VoiceMeeter Input turned on in Windows sound settings"
+                                   Visibility="{Binding BoostNoOutput, Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+
                     <!-- ===== updates ===== -->
                     <TextBlock Text="UPDATES" Style="{StaticResource SectionTitle}"/>
                     <Border Background="{StaticResource ElevatedBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="12" Padding="14,12" Margin="0,0,0,12">

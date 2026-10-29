@@ -28,6 +28,7 @@ public partial class App : Application
     private System.Windows.Threading.DispatcherTimer? _saveTimer;
     private string _appliedHotkey = string.Empty;
     private string _appliedAccent = string.Empty;
+    private string _appliedBoost = string.Empty;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -41,6 +42,16 @@ public partial class App : Application
             int code = 1;
             try { code = Probe.Run(e.Args.Length > 1 && !e.Args[1].StartsWith("--") ? e.Args[1] : "fader-probe.json", e.Args.Any(a => a.Equals("--download", StringComparison.OrdinalIgnoreCase))); }
             catch (Exception ex) { Log.Error("probe", ex); }
+            Shutdown(code);
+            return;
+        }
+
+        if (e.Args.Length > 0 && e.Args[0].Equals("--tone", StringComparison.OrdinalIgnoreCase)) { Shutdown(BoostSelfTest.Tone()); return; }
+        if (e.Args.Length > 0 && e.Args[0].Equals("--boost-selftest", StringComparison.OrdinalIgnoreCase))
+        {
+            int code = 1;
+            try { code = BoostSelfTest.Run(e.Args.Length > 1 ? e.Args[1] : "boost-selftest.json", e.Args.Length > 2 ? e.Args[2] : null); }
+            catch (Exception ex) { Log.Error("boost selftest", ex); }
             Shutdown(code);
             return;
         }
@@ -86,7 +97,7 @@ public partial class App : Application
         _settings = Settings.Load();
         ApplyAccent(_settings.Accent);
 
-        _service = new AudioSessionService(Dispatcher);
+        _service = new AudioSessionService(Dispatcher, () => _settings);
         _rules = new RulesEngine(_service, () => _settings);
         _service.Start();
 
@@ -102,6 +113,7 @@ public partial class App : Application
         _hotkey.Register(_settings.Hotkey);
         _appliedHotkey = _settings.Hotkey;
         _appliedAccent = _settings.Accent;
+        _appliedBoost = $"{_settings.BoostEnabled}|{_settings.BoostMax}|{_settings.BoostDevice}";
 
         _tray = new TrayIcon { IsAutoStart = AutoStart.IsEnabled };
         _tray.LeftClick += ToggleFlyout;
@@ -217,6 +229,8 @@ public partial class App : Application
         if (_settings.Hotkey != _appliedHotkey) { _hotkey?.Register(_settings.Hotkey); _appliedHotkey = _settings.Hotkey; }
         if (_settings.Accent != _appliedAccent) { ApplyAccent(_settings.Accent); _appliedAccent = _settings.Accent; }
         _gesture?.ApplySettings();
+        var boost = $"{_settings.BoostEnabled}|{_settings.BoostMax}|{_settings.BoostDevice}";
+        if (boost != _appliedBoost) { _appliedBoost = boost; _service?.BoostSettingsChanged(); }
         _saveTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
         _saveTimer.Stop();
         _saveTimer.Tick -= SaveTimer_Tick;

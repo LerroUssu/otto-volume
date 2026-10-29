@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Threading;
+using Otto.Audio.Boost;
 using Otto.Native;
+using Otto.Rules;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using static Otto.Native.NativeMethods;
@@ -24,6 +26,7 @@ public sealed class AudioSessionService : IDisposable
     private readonly DispatcherTimer _meterTimer;
     private readonly DispatcherTimer _housekeepingTimer;
     private readonly DispatcherTimer _rebindTimer;
+    private readonly DispatcherTimer _devicesTimer;
     private readonly uint _ownPid = (uint)Environment.ProcessId;
     private MMDevice? _device;
     private AudioSessionManager? _manager;
@@ -34,6 +37,8 @@ public sealed class AudioSessionService : IDisposable
 
     public ObservableCollection<AppAudio> Apps { get; } = new();
     public MasterAudio Master { get; }
+    /// <summary>Volume above 100 %; null in the headless probe.</summary>
+    public BoostEngine? Boost { get; }
 
     /// <summary>(app, session, initialEnumeration). Fired after the session is in the model.</summary>
     public event Action<AppAudio, SessionEntry, bool>? SessionAdded;
@@ -41,7 +46,7 @@ public sealed class AudioSessionService : IDisposable
     public event Action<AppAudio, SessionEntry, float>? SessionVolumeChanged;
     public event Action? DeviceChanged;
 
-    public AudioSessionService(Dispatcher ui)
+    public AudioSessionService(Dispatcher ui, Func<Settings>? settings = null)
     {
         _ui = ui;
         Master = new MasterAudio(ui);
@@ -54,8 +59,34 @@ public sealed class AudioSessionService : IDisposable
         _housekeepingTimer = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromSeconds(3) };
         _housekeepingTimer.Tick += (_, _) => Housekeeping();
         _rebindTimer = new DispatcherTimer(DispatcherPriority.Normal, ui) { Interval = TimeSpan.FromMilliseconds(400) };
-        _rebindTimer.Tick += (_, _) => { _rebindTimer.Stop(); BindDefaultDevice(); };
+        _rebindTimer.Tick += (_, _) =>
+        {
+            _rebindTimer.Stop();
+            // Moving an app to another output notifies too; rebind only when the default really changed.
+            try { if (_device != null && _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).ID == _device.ID) return; } catch { }
+            BindDefaultDevice();
+        };
+        _devicesTimer = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromMilliseconds(800) };
+        _devicesTimer.Tick += (_, _) => { _devicesTimer.Stop(); Boost?.RefreshSink(); };
+
+        if (settings != null)
+        {
+            Boost = new BoostEngine(ui, this, settings);
+            Boost.Changed += ApplyBoostRange;
+            Master.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(MasterAudio.VolumePercent) or nameof(MasterAudio.Muted)) Boost.Evaluate(); };
+        }
     }
+
+    private void ApplyBoostRange()
+    {
+        if (Boost == null) return;
+        Master.MaxPercent = Boost.MaxPercent;
+        foreach (var a in Apps) a.MaxPercent = a.IsSystemSounds || Boost.IsBlocked(a.Key) ? 100 : Boost.MaxPercent;
+        Boost.Evaluate();
+    }
+
+    /// <summary>Settings for boost changed (on/off, limit, spare output).</summary>
+    public void BoostSettingsChanged() => Boost?.RefreshSink();
 
     public void Start()
     {
@@ -83,7 +114,7 @@ public sealed class AudioSessionService : IDisposable
         ClearSessions();
         try
         {
-            if (!_enumerator.HasDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)) { Master.Unbind(); DeviceChanged?.Invoke(); return; }
+            if (!_enumerator.HasDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)) { Master.Unbind(); Boost?.BindRender(null); DeviceChanged?.Invoke(); return; }
             _device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
         }
         catch (Exception ex) { Log.Error("default device", ex); Master.Unbind(); return; }
@@ -104,6 +135,7 @@ public sealed class AudioSessionService : IDisposable
         }
         catch (Exception ex) { Log.Error("session manager", ex); }
         LastBindUtc = DateTime.UtcNow;
+        Boost?.BindRender(_device.ID);
         DeviceChanged?.Invoke();
     }
 
@@ -162,6 +194,11 @@ public sealed class AudioSessionService : IDisposable
             try { iconPath = control.IconPath; } catch { }
             app = new AppAudio(key, ResolveName(control, info, isSystem), info.ExePath, isSystem);
             app.AdjustedByUser += a => _userAdjusted.Add(a.Key);
+            if (Boost != null)
+            {
+                app.MaxPercent = isSystem || Boost.IsBlocked(key) ? 100 : Boost.MaxPercent;
+                app.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(AppAudio.VolumePercent) or nameof(AppAudio.Muted)) Boost.Evaluate(); };
+            }
             _apps[key] = app;
             InsertSorted(app);
             LoadIconAsync(app, iconPath, info.ExePath);
@@ -173,6 +210,7 @@ public sealed class AudioSessionService : IDisposable
         app.SyncFromSessions();
         Log.Write($"[session] + {app.Name} ({key}) pid={pid} vol={entry.Volume:0.00} mute={entry.Mute} state={entry.State} initial={initial}");
         SessionAdded?.Invoke(app, entry, initial);
+        Boost?.Evaluate(); // a boosted app opened another audio process
     }
 
     /// <summary>Shell icon extraction can take 100 ms cold; never on the UI thread.</summary>
@@ -217,6 +255,7 @@ public sealed class AudioSessionService : IDisposable
                 Log.Write($"[session] - {app.Name} ({reason})");
             }
             else app.SyncFromSessions();
+            Boost?.Evaluate();
         }
     }
 
@@ -289,6 +328,7 @@ public sealed class AudioSessionService : IDisposable
         {
             float p = 0f;
             foreach (var s in app.Sessions) p = Math.Max(p, s.Peak * (s.Mute ? 0f : s.Volume)); // the session meter is pre-gain: show what is heard
+            if (Boost != null && Boost.IsBoosted(app.Key)) p = Math.Max(p, Boost.TakePeak(app.Key)); // boosted: the sound comes out of Otto
             app.Peak = Smooth(app.Peak, p);
         }
         Master.Peak = Smooth(Master.Peak, Master.ReadPeak());
@@ -302,9 +342,10 @@ public sealed class AudioSessionService : IDisposable
     {
         private readonly AudioSessionService _svc;
         public NotificationClient(AudioSessionService svc) { _svc = svc; }
-        public void OnDeviceStateChanged(string deviceId, DeviceState newState) { }
-        public void OnDeviceAdded(string pwstrDeviceId) { }
-        public void OnDeviceRemoved(string deviceId) { }
+        public void OnDeviceStateChanged(string deviceId, DeviceState newState) => DevicesChanged();
+        public void OnDeviceAdded(string pwstrDeviceId) => DevicesChanged();
+        public void OnDeviceRemoved(string deviceId) => DevicesChanged();
+        private void DevicesChanged() => _svc._ui.BeginInvoke(() => { _svc._devicesTimer.Stop(); _svc._devicesTimer.Start(); });
         public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
         {
             if (flow != DataFlow.Render || role != Role.Multimedia) return;
@@ -315,7 +356,8 @@ public sealed class AudioSessionService : IDisposable
 
     public void Dispose()
     {
-        _meterTimer.Stop(); _housekeepingTimer.Stop(); _rebindTimer.Stop();
+        _meterTimer.Stop(); _housekeepingTimer.Stop(); _rebindTimer.Stop(); _devicesTimer.Stop();
+        Boost?.Dispose(); // send boosted apps back before anything else goes away
         ClearSessions();
         Master.Unbind();
         try { _enumerator.UnregisterEndpointNotificationCallback(_notifications); } catch { }

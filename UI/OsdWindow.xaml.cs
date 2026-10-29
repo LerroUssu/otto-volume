@@ -74,6 +74,14 @@ public partial class OsdWindow : Window
         Fill.Width = BarWidth * Math.Clamp(percent, 0, 100) / 100.0;
         Fill.Opacity = muted ? 0.35 : 1;
         ValueText.Text = muted ? "Muted" : $"{percent:0}";
+        MarkBoost(!muted && percent > 100);
+    }
+
+    /// <summary>Above 100 % the number takes the accent colour (the bar is already full).</summary>
+    private void MarkBoost(bool boosted)
+    {
+        if (boosted) ValueText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "AccentBrush");
+        else ValueText.ClearValue(System.Windows.Controls.TextBlock.ForegroundProperty);
     }
 
     private void FillMessage(string name, ImageSource? icon, string message, double? percent)
@@ -83,6 +91,7 @@ public partial class OsdWindow : Window
         Fill.Width = percent is double p ? BarWidth * Math.Clamp(p, 0, 100) / 100.0 : 0;
         Fill.Opacity = 1;
         ValueText.Text = percent is double q ? $"{q:0}" : string.Empty;
+        MarkBoost(percent > 100);
     }
 
     private void SetIcon(ImageSource? icon, string glyph)

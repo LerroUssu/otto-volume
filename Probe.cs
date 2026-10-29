@@ -102,6 +102,22 @@ public static class Probe
             systemSoundsName = LoadIndirectString(@"@%SystemRoot%\System32\AudioSrv.Dll,-202"),
         });
 
+        Check("boost", () =>
+        {
+            using var en = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+            var def = en.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia).ID;
+            var spares = en.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.DeviceState.Active)
+                .Where(d => d.ID != def).Select(d => d.FriendlyName).ToList();
+            return new
+            {
+                perAppOutputs = Otto.Audio.Boost.AudioPolicyConfig.IsAvailable,
+                ownRoute = Otto.Audio.Boost.AudioPolicyConfig.Get((uint)Environment.ProcessId),
+                spares,
+                settings.BoostEnabled, settings.BoostMax, settings.BoostDevice,
+                leftovers = File.Exists(Path.Combine(Log.Dir, "boost-routes.json")),
+            };
+        });
+
         Check("autostart", () => AutoStart.IsEnabled());
         Check("trayInspect", () => Otto.Tray.TrayIcon.CanInspect);
 

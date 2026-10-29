@@ -59,6 +59,12 @@ public sealed class Settings
     public string Accent { get; set; } = DefaultAccent;
     public const string DefaultAccent = "#46A873"; // Otto's green
 
+    // Boost above 100 % (needs a spare output such as VB-CABLE or VoiceMeeter Input)
+    public bool BoostEnabled { get; set; } = true;
+    public int BoostMax { get; set; } = 200;
+    /// <summary>Output used to carry boosted apps; null = the first virtual cable found.</summary>
+    public string? BoostDevice { get; set; }
+
     public bool FirstRunDone { get; set; } = false;
     public bool AutoCheckUpdates { get; set; } = true;
 

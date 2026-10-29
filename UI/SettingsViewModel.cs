@@ -9,6 +9,7 @@ namespace Otto.UI;
 public sealed class SettingsViewModel : ObservableObject, IDisposable
 {
     private readonly Settings _s;
+    private readonly AudioSessionService _service;
     private readonly Action _changed;
     private readonly System.ComponentModel.PropertyChangedEventHandler _ruleChanged;
     private int _lastStart;
@@ -20,6 +21,7 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     {
         Updates = updates;
         _s = settings;
+        _service = service;
         _changed = changed;
         _ruleChanged = (_, _) => _changed();
         _lastStart = settings.NewAppStartVolume ?? 50;
@@ -83,6 +85,51 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
 
     public string Hotkey { get => _s.Hotkey; set { _s.Hotkey = value; Raise(); _changed(); } }
     public bool AutoStartEnabled { get => AutoStart.IsEnabled(); set { AutoStart.Set(value); Raise(); } }
+
+    // ---- boost ---------------------------------------------------------------------------
+
+    public sealed class OutputChoice : ObservableObject
+    {
+        private readonly SettingsViewModel _vm;
+        public string? Id { get; }
+        public string Name { get; }
+        public OutputChoice(SettingsViewModel vm, string? id, string name) { _vm = vm; Id = id; Name = name; }
+        public bool IsChecked { get => _vm._s.BoostDevice == Id; set { if (value) _vm.SelectOutput(Id); } }
+        internal void Refresh() => Raise(nameof(IsChecked));
+    }
+
+    private List<OutputChoice>? _outputs;
+
+    public bool BoostEnabled { get => _s.BoostEnabled; set { _s.BoostEnabled = value; Raise(); _changed(); } }
+    public bool Max150 { get => _s.BoostMax == 150; set { if (value) SetMax(150); } }
+    public bool Max200 { get => _s.BoostMax == 200; set { if (value) SetMax(200); } }
+    public bool Max300 { get => _s.BoostMax == 300; set { if (value) SetMax(300); } }
+
+    private void SetMax(int max)
+    {
+        _s.BoostMax = max;
+        Raise(nameof(Max150)); Raise(nameof(Max200)); Raise(nameof(Max300));
+        _changed();
+    }
+
+    /// <summary>"Automatic" plus every output except the one you listen to.</summary>
+    public List<OutputChoice> BoostOutputs => _outputs ??= new[] { new OutputChoice(this, null, "Automatic") }
+        .Concat((_service.Boost?.Candidates() ?? new()).Select(c => new OutputChoice(this, c.Id, c.Name))).ToList();
+
+    public bool BoostHasOutput => _service.Boost?.SinkName != null;
+    public bool BoostNoOutput => !BoostHasOutput;
+    public string BoostOutputName => _service.Boost?.SinkName ?? "";
+
+    private void SelectOutput(string? id)
+    {
+        _s.BoostDevice = id;
+        foreach (var o in BoostOutputs) o.Refresh();
+        _changed();
+        Raise(nameof(BoostHasOutput)); Raise(nameof(BoostNoOutput)); Raise(nameof(BoostOutputName));
+    }
+
+    /// <summary>The engine picked (or lost) its output after a settings change.</summary>
+    public void RefreshBoost() { Raise(nameof(BoostHasOutput)); Raise(nameof(BoostNoOutput)); Raise(nameof(BoostOutputName)); }
 
     // ---- updates -------------------------------------------------------------------------
 

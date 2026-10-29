@@ -9,11 +9,12 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>Otto</AssemblyName>
     <RootNamespace>Otto</RootNamespace>
-    <Version>0.4.5</Version>
+    <Version>0.5.0</Version>
     <ApplicationIcon>assets\otto.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>false</InvariantGlobalization>
     <DebugType>embedded</DebugType>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
