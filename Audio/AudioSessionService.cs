@@ -106,6 +106,17 @@ public sealed class AudioSessionService : IDisposable
     }
 
     public string DeviceId => _device?.ID ?? string.Empty;
+    public string DeviceName => Master.DeviceName;
+
+    private double _scale = 1;
+
+    /// <summary>Scale every session (boost through FxSound). New sessions get it too.</summary>
+    internal void SetSessionScale(double scale)
+    {
+        if (Math.Abs(_scale - scale) < 1e-6) return;
+        _scale = scale;
+        foreach (var a in Apps) a.Scale = scale;
+    }
 
     // ---- device binding ------------------------------------------------------------------
 
@@ -188,11 +199,12 @@ public sealed class AudioSessionService : IDisposable
             foreach (var old in existing.Sessions.ToList())
                 if (!old.IsSystemSounds && !ProcessInfo.IsAlive(old.Pid)) RemoveSession(old, "process exited");
 
+        bool newApp = !_apps.ContainsKey(key);
         if (!_apps.TryGetValue(key, out var app))
         {
             string? iconPath = null;
             try { iconPath = control.IconPath; } catch { }
-            app = new AppAudio(key, ResolveName(control, info, isSystem), info.ExePath, isSystem);
+            app = new AppAudio(key, ResolveName(control, info, isSystem), info.ExePath, isSystem) { Scale = _scale };
             app.AdjustedByUser += a => _userAdjusted.Add(a.Key);
             if (Boost != null)
             {
@@ -207,6 +219,7 @@ public sealed class AudioSessionService : IDisposable
         var entry = new SessionEntry(control, pid, instanceId, info, isSystem, key, this);
         _sessions.Add(entry);
         app.Sessions.Add(entry);
+        app.Adopt(entry, newApp);
         app.SyncFromSessions();
         Log.Write($"[session] + {app.Name} ({key}) pid={pid} vol={entry.Volume:0.00} mute={entry.Mute} state={entry.State} initial={initial}");
         SessionAdded?.Invoke(app, entry, initial);
@@ -324,14 +337,15 @@ public sealed class AudioSessionService : IDisposable
 
     private void MeterTick()
     {
+        double gain = Boost?.OutputGain ?? 1.0; // FxSound adds this after Windows' meters
         foreach (var app in Apps)
         {
             float p = 0f;
             foreach (var s in app.Sessions) p = Math.Max(p, s.Peak * (s.Mute ? 0f : s.Volume)); // the session meter is pre-gain: show what is heard
             if (Boost != null && Boost.IsBoosted(app.Key)) p = Math.Max(p, Boost.TakePeak(app.Key)); // boosted: the sound comes out of Otto
-            app.Peak = Smooth(app.Peak, p);
+            app.Peak = Smooth(app.Peak, Math.Min(1.0, p * gain));
         }
-        Master.Peak = Smooth(Master.Peak, Master.ReadPeak());
+        Master.Peak = Smooth(Master.Peak, Math.Min(1.0, Master.ReadPeak() * gain));
     }
 
     private static double Smooth(double current, double target) => target >= current ? target : current * 0.80;

@@ -14,6 +14,7 @@ public sealed class AppAudio : ObservableObject
     private bool _isActive;
     private bool _syncing;
     private int _maxPercent = 100;
+    private double _scale = 1;
 
     public string Key { get; }
     public string Name { get; }
@@ -57,7 +58,7 @@ public sealed class AppAudio : ObservableObject
             if (!Set(ref _volumePercent, v)) return;
             Raise(nameof(IsBoosted));
             if (_syncing) return;
-            foreach (var s in Sessions) s.SetVolume((float)(v / 100.0));
+            Push();
             AdjustedByUser?.Invoke(this);
         }
     }
@@ -74,6 +75,34 @@ public sealed class AppAudio : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Every session's real level is the slider × this (boost through FxSound: FxSound lifts everything by G,
+    /// sessions are scaled by 1/G). 1 otherwise.
+    /// </summary>
+    internal double Scale
+    {
+        get => _scale;
+        set
+        {
+            if (Math.Abs(_scale - value) < 1e-6) return;
+            _scale = value;
+            Push();
+        }
+    }
+
+    private void Push()
+    {
+        foreach (var s in Sessions) s.SetVolume((float)Math.Min(1.0, _volumePercent / 100.0 * _scale));
+    }
+
+    /// <summary>A session that just appeared: an app new to the mixer keeps its own level as the slider; a further session of a known app gets the app's level.</summary>
+    internal void Adopt(SessionEntry entry, bool newApp)
+    {
+        if (Math.Abs(_scale - 1) < 1e-6) return;
+        float level = newApp ? entry.UserVolume : (float)(_volumePercent / 100.0);
+        entry.SetVolume((float)Math.Min(1.0, level * _scale));
+    }
+
     /// <summary>Wheel steps stop at 100 % once on the way up; the next step goes into boost.</summary>
     public void Nudge(int percentDelta)
         => VolumePercent = _volumePercent < 100 && _volumePercent + percentDelta > 100 ? 100 : _volumePercent + percentDelta;
@@ -85,8 +114,9 @@ public sealed class AppAudio : ObservableObject
         _syncing = true;
         try
         {
-            double v = Sessions.Max(s => s.UserVolume) * 100.0;
-            if (v >= 99.95 && _volumePercent > 100) v = _volumePercent; // boosted: the sessions sit at 100 %
+            double raw = Sessions.Max(s => s.UserVolume);
+            double v = raw * 100.0 / _scale;
+            if (raw >= 0.9995 && _volumePercent > v) v = _volumePercent; // boosted: the sessions sit at 100 %
             VolumePercent = v;
             Muted = Sessions.All(s => s.Mute);
             IsActive = Sessions.Any(s => s.State == AudioSessionState.AudioSessionStateActive);

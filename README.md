@@ -32,7 +32,7 @@ Run `Otto.exe`. It lives in the tray (no window). Then:
 | **Drag the mixer** anywhere (or click its pin) | It stays open until you press Esc, click the pin, or toggle it from the tray. |
 | **Level pill position** (Settings) | The pill always appears at the same spot: top, center or bottom of the screen the mouse is on (bottom by default). |
 | Launch an app that plays sound | The moment Windows creates its audio session, Otto sets it to the **start level** (50 % by default). Per-app rules give some apps their own start level or leave them alone. |
-| **Slide past 100 %** (an app, or the master for every app) | Boost: the app gets louder than Windows allows, up to 200 % (Settings: 150 / 200 / 300 %). Needs a spare output, see [Boost](#boost). |
+| **Slide past 100 %** (an app, or the master for every app) | Boost: the app gets louder than Windows allows, up to 200 % (Settings: 150 / 200 / 300 %). Goes through FxSound, see [Boost](#boost). |
 | Right-click the tray icon | Open mixer, Settings, Start with Windows, Check for updates, Quit. When a new version is out, **Update to vX** appears at the top. |
 
 Settings (gear in the flyout, or the tray menu) let you change the modifier (Alt / Ctrl+Alt /
@@ -56,21 +56,28 @@ is read-only, it says so and the release page has the download.
 
 ### Boost
 
-Windows' per-app and master volumes stop at 100 %. To go further, Otto needs a **spare output**
-nobody listens to: [VB-CABLE](https://vb-audio.com/Cable/) (free), or Voicemeeter's
-"VoiceMeeter Input" (turn it on in Sound settings → More sound settings → Playback → right-click →
-Show disabled devices → Enable; don't make it the default). Otto picks a virtual cable by itself;
-Settings → Boost lets you choose another output.
+Windows' per-app and master volumes stop at 100 %. Otto goes further through
+**[FxSound](https://www.fxsound.com/)** (free, open source, made by FxSound LLC, installed
+separately). Settings → FxSound → **Get FxSound** downloads its official installer from
+[FxSound's GitHub releases](https://github.com/fxsound2/fxsound-app/releases), checks it is signed by
+FxSound, LLC, and runs it. FxSound adds its own audio driver; while FxSound is on, Windows plays
+through it.
 
-When an app goes past 100 % Otto sends it to the spare output (the same per-app setting as
-Windows' *App volume and device preferences*), mutes that output, records the app there
-(process loopback) and plays it × the boost on your real output through a limiter. Back at
-100 % the app returns to its usual output and Otto's stream closes. The master slider past
-100 % does this for every app. A boosted app is about 30 ms late; nothing changes below 100 %.
+How it works: FxSound's gain lifts everything by G and Otto scales every app's own volume by 1/G,
+so only the apps above 100 % come out louder. One app at 200 % → FxSound +6 dB, that app at 100 %,
+every other app at half (they sound the same as before). The master slider past 100 % lifts every
+app. Nothing is rerouted or recorded, so there is no delay. Changes go "quieter first": app levels
+drop before FxSound's gain rises, and the gain drops before app levels come back. When Otto quits,
+FxSound's gain goes back to yours. Boost needs FxSound turned on; without it the sliders stop at 100 %.
 
-Apps that pick a fixed device themselves (some games) don't follow the move: Otto notices
-within a few seconds, puts the app back and keeps it at 100 %. Windows remembers per-app
-outputs, so if Otto is killed while boosting it puts the apps back the next time it runs.
+The same card in Otto's settings shows FxSound itself: on/off, its presets, the clarity / ambience /
+surround / dynamic boost / bass sliders and which speakers it plays on. Otto talks to FxSound through
+FxSound's documented command line (`FxSound.exe --power=1`, `--preset=…`, `--status`); it contains
+none of FxSound's code.
+
+*A spare output* (Settings → Boost → through) is the older way, kept as an option: a boosted app is
+sent to a virtual output such as VB-CABLE, recorded there and played louder by Otto. It is off unless
+you pick it.
 
 ### Volume vs loudness
 
@@ -145,5 +152,5 @@ Headless self-test (opens no window, changes nothing): `Otto.exe --probe report.
 - Taskbar-button matching goes by button name / window title; an app whose window title
   contains neither its name nor a known window title falls back to the master volume.
 - Only the default output device is shown (what the Windows mixer shows too).
-- Boost needs a spare (virtual) output, and an app must follow default-device changes to be
-  boosted (Chrome, Discord, Spotify, most players do).
+- Boost needs FxSound installed and on. Boosting adds FxSound's gain to its whole output, so a
+  very loud app at 300 % can clip in FxSound.

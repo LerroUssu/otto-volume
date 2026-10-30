@@ -37,6 +37,8 @@ public partial class SettingsWindow : Window
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
+    private void FxOpen_Click(object sender, RoutedEventArgs e) => _vm.Fx?.Open();
+    private void FxInstall_Click(object sender, RoutedEventArgs e) => _ = _vm.Fx?.InstallAsync();
 
     private void Hotkey_PreviewKeyDown(object sender, KeyEventArgs e)
     {

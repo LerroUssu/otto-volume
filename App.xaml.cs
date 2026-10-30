@@ -47,6 +47,14 @@ public partial class App : Application
         }
 
         if (e.Args.Length > 0 && e.Args[0].Equals("--tone", StringComparison.OrdinalIgnoreCase)) { Shutdown(BoostSelfTest.Tone()); return; }
+        if (e.Args.Length > 0 && e.Args[0].Equals("--fx-selftest", StringComparison.OrdinalIgnoreCase))
+        {
+            int code = 1;
+            try { code = FxSelfTest.Run(e.Args.Length > 1 ? e.Args[1] : "fx-selftest.json", e.Args.Length > 2 ? e.Args[2] : null); }
+            catch (Exception ex) { Log.Error("fx selftest", ex); }
+            Shutdown(code);
+            return;
+        }
         if (e.Args.Length > 0 && e.Args[0].Equals("--boost-selftest", StringComparison.OrdinalIgnoreCase))
         {
             int code = 1;
@@ -113,7 +121,7 @@ public partial class App : Application
         _hotkey.Register(_settings.Hotkey);
         _appliedHotkey = _settings.Hotkey;
         _appliedAccent = _settings.Accent;
-        _appliedBoost = $"{_settings.BoostEnabled}|{_settings.BoostMax}|{_settings.BoostDevice}";
+        _appliedBoost = $"{_settings.BoostEnabled}|{_settings.BoostMax}|{_settings.BoostDevice}|{_settings.BoostVia}";
 
         _tray = new TrayIcon { IsAutoStart = AutoStart.IsEnabled };
         _tray.LeftClick += ToggleFlyout;
@@ -229,7 +237,7 @@ public partial class App : Application
         if (_settings.Hotkey != _appliedHotkey) { _hotkey?.Register(_settings.Hotkey); _appliedHotkey = _settings.Hotkey; }
         if (_settings.Accent != _appliedAccent) { ApplyAccent(_settings.Accent); _appliedAccent = _settings.Accent; }
         _gesture?.ApplySettings();
-        var boost = $"{_settings.BoostEnabled}|{_settings.BoostMax}|{_settings.BoostDevice}";
+        var boost = $"{_settings.BoostEnabled}|{_settings.BoostMax}|{_settings.BoostDevice}|{_settings.BoostVia}";
         if (boost != _appliedBoost) { _appliedBoost = boost; _service?.BoostSettingsChanged(); }
         _saveTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
         _saveTimer.Stop();

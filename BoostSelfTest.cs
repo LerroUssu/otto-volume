@@ -139,14 +139,14 @@ public static class BoostSelfTest
         return found;
     }
 
-    private static T? WaitFor<T>(Func<T?> f, int ms) where T : class
+    internal static T? WaitFor<T>(Func<T?> f, int ms) where T : class
     {
         var sw = Stopwatch.StartNew();
         while (sw.ElapsedMilliseconds < ms) { var v = f(); if (v != null) return v; Pump(100); }
         return null;
     }
 
-    private static void Pump(int ms)
+    internal static void Pump(int ms)
     {
         var frame = new DispatcherFrame();
         var t = new DispatcherTimer(TimeSpan.FromMilliseconds(ms), DispatcherPriority.Background, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);

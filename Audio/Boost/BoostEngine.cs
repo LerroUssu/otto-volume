@@ -6,6 +6,7 @@ using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using Otto.Audio.FxSound;
 using Otto.Rules;
 
 namespace Otto.Audio.Boost;
@@ -16,6 +17,8 @@ namespace Otto.Audio.Boost;
 /// boosting), recorded there with process loopback, multiplied and played on the real output by Otto.
 /// An app slider above 100 % boosts that app; the master slider above 100 % boosts every app.
 /// Below that nothing is moved and Otto's own output stream is closed.
+/// When FxSound is installed and is the output, boost goes through FxSound instead (<see cref="FxSoundBoost"/>);
+/// the spare-output route is only used when picked in settings.
 /// </summary>
 public sealed class BoostEngine : IDisposable
 {
@@ -34,7 +37,12 @@ public sealed class BoostEngine : IDisposable
     private WaveFormat? _format;
     private WasapiOut? _out;
     private BoostMixer? _mixer;
-    private bool _disposed, _evaluating;
+    private bool _disposed, _evaluating, _wasViaFx, _fxStarted;
+    private readonly FxSoundBoost _fxBoost;
+
+    /// <summary>The installed FxSound, if any.</summary>
+    public FxSoundLink Fx { get; } = new();
+    internal FxSoundBoost FxBoost => _fxBoost;
 
     private sealed class Boosted
     {
@@ -58,11 +66,17 @@ public sealed class BoostEngine : IDisposable
         _store = RouteStore.Load();
         _tick = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromMilliseconds(1500) };
         _tick.Tick += (_, _) => Tick();
+        _fxBoost = new FxSoundBoost(ui, svc, Fx);
         RecoverFromLastRun();
         _tick.Start();
     }
 
-    public bool Available => _render != null && _sink != null && _format != null && _settings().BoostEnabled;
+    /// <summary>Boost through FxSound: picked (the default), FxSound running and Windows playing through its driver.</summary>
+    public bool ViaFxSound => _settings().BoostEnabled && _settings().BoostVia != BoostRoute.Spare && Fx.Installed && FxSoundLink.Running
+                              && (_render?.FriendlyName.Contains(FxSoundLink.DriverName, StringComparison.OrdinalIgnoreCase) ?? false);
+    public bool Available => ViaFxSound || (_settings().BoostEnabled && _settings().BoostVia == BoostRoute.Spare && _render != null && _sink != null && _format != null);
+    /// <summary>What FxSound adds after Windows' meters.</summary>
+    public double OutputGain => ViaFxSound ? _fxBoost.Gain : 1.0;
     public string? SinkName { get; private set; }
     public string? SinkId => _sink?.ID;
     /// <summary>Self-test only: play the boosted sound into this (muted) output instead of the real one.</summary>
@@ -142,6 +156,16 @@ public sealed class BoostEngine : IDisposable
         _evaluating = true;
         try
         {
+            bool viaFx = ViaFxSound;
+            if (viaFx != _wasViaFx) { _wasViaFx = viaFx; Log.Write($"[boost] through FxSound: {viaFx}"); }
+            if (viaFx)
+            {
+                if (!_fxStarted) { _fxStarted = true; _ = _fxBoost.StartAsync(); }
+                if (_boosted.Count > 0) ReleaseAll();
+                _fxBoost.Evaluate(MaxPercent);
+                return;
+            }
+            _fxBoost.Release();
             bool available = Available;
             double master = available ? Math.Max(1.0, _svc.Master.VolumePercent / 100.0) : 1.0;
             var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -400,6 +424,7 @@ public sealed class BoostEngine : IDisposable
 
     private void Tick()
     {
+        if (ViaFxSound != _wasViaFx) { if (!FxSoundLink.Running) _fxStarted = false; Changed?.Invoke(); } // FxSound started, quit or became/stopped being the output
         FixSinkSessions();
         DetectIgnoredRoutes();
     }
@@ -446,6 +471,7 @@ public sealed class BoostEngine : IDisposable
         if (_disposed) return;
         _tick.Stop();
         ReleaseAll();
+        try { _fxBoost.ReleaseNow(); } catch (Exception ex) { Log.Error("fxsound release", ex); }
         _disposed = true;
         _render?.Dispose(); _sink?.Dispose();
         try { _enumerator.Dispose(); } catch { }

@@ -95,6 +95,66 @@
                     <TextBlock Style="{StaticResource DimText}" FontSize="11" Foreground="{StaticResource TextFaintBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
                                Text="Drag the mixer panel anywhere to keep it open; the pin button does the same. Esc or the pin closes it again."/>
 
+                    <!-- ===== FxSound ===== -->
+                    <TextBlock Text="FXSOUND" Style="{StaticResource SectionTitle}"/>
+                    <Border DataContext="{Binding Fx}" Background="{StaticResource ElevatedBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="12" Padding="14,12" Margin="0,0,0,12">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="FxSound" Style="{StaticResource BodyText}" FontWeight="SemiBold" FontSize="14"/>
+                                    <TextBlock Text="{Binding Version}" Style="{StaticResource DimText}" FontSize="11" Margin="8,2,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Power}" Content="On" Margin="0,0,12,0"
+                                              Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}"/>
+                                    <Button Style="{StaticResource PillButton}" Content="Open FxSound" Click="FxOpen_Click"
+                                            Visibility="{Binding Installed, Converter={StaticResource BoolToVis}}"/>
+                                    <Button Style="{StaticResource PillButton}" Content="Get FxSound" Click="FxInstall_Click" IsEnabled="{Binding CanInstall}"
+                                            Background="{DynamicResource AccentBrush}" Foreground="White"
+                                            Visibility="{Binding NotInstalled, Converter={StaticResource BoolToVis}}"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="{Binding InstallText}" Style="{StaticResource DimText}" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+                            <StackPanel Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}" IsEnabled="{Binding Power}" Margin="0,4,0,0">
+                                <TextBlock Text="preset" Style="{StaticResource DimText}" Margin="0,0,0,6"/>
+                                <ItemsControl ItemsSource="{Binding Presets}" Focusable="False" Margin="0,0,0,10">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate><RadioButton Style="{StaticResource Segment}" GroupName="FxPreset" Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="0,0,0,4"/></DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding Effects}" Focusable="False" Margin="0,0,0,8">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="40"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Label}" Style="{StaticResource BodyText}" VerticalAlignment="Center"/>
+                                                <Slider Grid.Column="1" Style="{StaticResource FaderSlider}" Maximum="10" SmallChange="0.5" Value="{Binding Value}" Margin="0,0,12,0"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Value, StringFormat={}{0:0.#}}" Style="{StaticResource BodyText}" TextAlignment="Right" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="plays on" Style="{StaticResource DimText}" Margin="0,0,0,6"/>
+                                <ItemsControl ItemsSource="{Binding Outputs}" Focusable="False">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate><RadioButton Style="{StaticResource Segment}" GroupName="FxOutput" Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="0,0,0,4"/></DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <!-- ===== boost ===== -->
                     <TextBlock Text="BOOST" Style="{StaticResource SectionTitle}"/>
                     <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding BoostEnabled}" Content="Let the sliders go past 100 %" Margin="0,0,0,12"/>
@@ -105,8 +165,12 @@
                             <RadioButton Style="{StaticResource Segment}" Content="200 %" IsChecked="{Binding Max200}"/>
                             <RadioButton Style="{StaticResource Segment}" Content="300 %" IsChecked="{Binding Max300}"/>
                         </WrapPanel>
-                        <TextBlock Text="boosted apps go through" Style="{StaticResource DimText}" Margin="0,0,0,6"/>
-                        <ItemsControl ItemsSource="{Binding BoostOutputs}" Focusable="False">
+                        <TextBlock Text="through" Style="{StaticResource DimText}" Margin="0,0,0,6"/>
+                        <WrapPanel Margin="0,0,0,8">
+                            <RadioButton Style="{StaticResource Segment}" GroupName="BoostRoute" Content="FxSound" IsChecked="{Binding ViaFxSound}"/>
+                            <RadioButton Style="{StaticResource Segment}" GroupName="BoostRoute" Content="A spare output" IsChecked="{Binding ViaSpare}"/>
+                        </WrapPanel>
+                        <ItemsControl ItemsSource="{Binding BoostOutputs}" Focusable="False" Visibility="{Binding ViaSpare, Converter={StaticResource BoolToVis}}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
@@ -117,10 +181,9 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <TextBlock Style="{StaticResource DimText}" FontSize="11" Foreground="{StaticResource TextFaintBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
-                                   Text="{Binding BoostOutputName, StringFormat=Using {0}}" Visibility="{Binding BoostHasOutput, Converter={StaticResource BoolToVis}}"/>
+                                   Text="{Binding BoostState}" Visibility="{Binding BoostReady, Converter={StaticResource BoolToVis}}"/>
                         <TextBlock Style="{StaticResource DimText}" FontSize="11" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
-                                   Text="Needs a spare output: VB-CABLE, or VoiceMeeter Input turned on in Windows sound settings"
-                                   Visibility="{Binding BoostNoOutput, Converter={StaticResource BoolToVis}}"/>
+                                   Text="{Binding BoostState}" Visibility="{Binding BoostNotReady, Converter={StaticResource BoolToVis}}"/>
                     </StackPanel>
 
                     <!-- ===== updates ===== -->

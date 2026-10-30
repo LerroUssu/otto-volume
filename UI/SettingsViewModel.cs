@@ -29,7 +29,12 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
         Rules = new ObservableCollection<AppRule>(settings.Rules);
         foreach (var r in Rules) Hook(r);
         Rules.CollectionChanged += (_, _) => { _s.Rules = Rules.ToList(); _changed(); };
+        if (service.Boost != null) service.Boost.Changed += RefreshBoost;
+        if (service.Boost != null) Fx = new FxSoundViewModel(service.Boost.Fx, System.Windows.Threading.Dispatcher.CurrentDispatcher, () => { service.BoostSettingsChanged(); RefreshBoost(); });
     }
+
+    /// <summary>The installed FxSound (null in the headless probe).</summary>
+    public FxSoundViewModel? Fx { get; }
 
     private void Hook(AppRule r) => r.PropertyChanged += _ruleChanged;
 
@@ -37,6 +42,8 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         foreach (var r in Rules) r.PropertyChanged -= _ruleChanged;
+        Fx?.Dispose();
+        if (_service.Boost != null) _service.Boost.Changed -= RefreshBoost;
     }
 
     // ---- gesture -------------------------------------------------------------------------
@@ -116,6 +123,27 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     public List<OutputChoice> BoostOutputs => _outputs ??= new[] { new OutputChoice(this, null, "Automatic") }
         .Concat((_service.Boost?.Candidates() ?? new()).Select(c => new OutputChoice(this, c.Id, c.Name))).ToList();
 
+    public bool ViaFxSound { get => _s.BoostVia == BoostRoute.FxSound; set { if (value) SetRoute(BoostRoute.FxSound); } }
+    public bool ViaSpare { get => _s.BoostVia == BoostRoute.Spare; set { if (value) SetRoute(BoostRoute.Spare); } }
+
+    private void SetRoute(BoostRoute r)
+    {
+        _s.BoostVia = r;
+        Raise(nameof(ViaFxSound)); Raise(nameof(ViaSpare));
+        _changed();
+        RefreshBoost();
+    }
+
+    /// <summary>One line under the boost options: what boost goes through right now, or what it is missing.</summary>
+    public string BoostState => _s.BoostVia == BoostRoute.FxSound
+        ? (_service.Boost?.ViaFxSound == true ? "Boosting through FxSound"
+           : _service.Boost?.Fx.Installed != true ? "Needs FxSound"
+           : !Audio.FxSound.FxSoundLink.Running ? "Start FxSound to boost"
+           : "Turn FxSound on to boost")
+        : (_service.Boost?.SinkName is { } n ? $"Using {n}" : "Needs a spare output: VB-CABLE, or VoiceMeeter Input turned on in Windows sound settings");
+    public bool BoostReady => _service.Boost?.Available == true;
+    public bool BoostNotReady => !BoostReady;
+
     public bool BoostHasOutput => _service.Boost?.SinkName != null;
     public bool BoostNoOutput => !BoostHasOutput;
     public string BoostOutputName => _service.Boost?.SinkName ?? "";
@@ -129,7 +157,11 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>The engine picked (or lost) its output after a settings change.</summary>
-    public void RefreshBoost() { Raise(nameof(BoostHasOutput)); Raise(nameof(BoostNoOutput)); Raise(nameof(BoostOutputName)); }
+    public void RefreshBoost()
+    {
+        Raise(nameof(BoostHasOutput)); Raise(nameof(BoostNoOutput)); Raise(nameof(BoostOutputName));
+        Raise(nameof(BoostState)); Raise(nameof(BoostReady)); Raise(nameof(BoostNotReady));
+    }
 
     // ---- updates -------------------------------------------------------------------------
 

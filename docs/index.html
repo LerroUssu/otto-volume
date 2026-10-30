@@ -155,7 +155,7 @@
     <div class="card"><h3><span class="glyph">◔</span>Start level for new apps</h3><p>The moment an app opens its audio, before you hear anything, Otto sets it to your start level (50 % by default). Per-app rules give some apps their own, or leave them alone.</p></div>
     <div class="card"><h3><span class="glyph">◎</span>One pill, one place</h3><p>Every change shows a small glass pill at a fixed spot: top, center or bottom of the screen the mouse is on. Your choice.</p></div>
     <div class="card"><h3><span class="glyph">▣</span>Quiet by design</h3><p>Lives in the tray, opens no window on start, one small exe. Settings in <code>%APPDATA%\Otto</code>, or next to the exe in portable mode.</p></div>
-    <div class="card wide"><h3><span class="glyph">▲</span>Louder than 100 %</h3><p>Slide an app past 100 % to boost just that app, or the master past 100 % to boost everything, up to 200 %. Needs a free virtual output (VB-CABLE, or Voicemeeter's VoiceMeeter Input): Otto sends the boosted app there, records it and plays it louder, with a limiter. Adds about 30 ms of delay to the boosted app only.</p></div>
+    <div class="card wide"><h3><span class="glyph">▲</span>Louder than 100 %</h3><p>Slide an app past 100 % to boost just that app, or the master past 100 % to boost everything, up to 200 %. Goes through FxSound (free, installed from Otto\'s settings): FxSound lifts the sound and Otto turns the other apps down to match, so nothing is delayed.</p></div>
     <div class="card wide"><h3><span class="glyph">↻</span>Updates itself</h3><p>Otto checks GitHub twice a day. When a new version is out, the tray menu shows <em>Update to vX</em>: one click downloads it, verifies its checksum, swaps the exe and restarts. Settings stay.</p></div>
   </div>
 
@@ -184,7 +184,8 @@
   <div class="grid">
     <div class="card"><h3>Quick adjust</h3><p>Taskbar scrolling, hover pill, speaker-icon click, the Alt gesture and its modifier (Alt, Ctrl+Alt, Shift+Alt, Ctrl+Shift), the wheel step (1 / 2 / 5 %), pill on/off and its position.</p></div>
     <div class="card"><h3>Mixer</h3><p>The hotkey, start with Windows.</p></div>
-    <div class="card"><h3>Boost</h3><p>Let the sliders go past 100 % or not, how far (150 / 200 / 300 %), and which spare output carries boosted apps (automatic by default).</p></div>
+    <div class="card"><h3>Boost</h3><p>Let the sliders go past 100 % or not, and how far (150 / 200 / 300 %).</p></div>
+    <div class="card"><h3>FxSound</h3><p>Get FxSound in one click, then turn it on or off, pick its preset, set clarity, ambience, surround, dynamic boost and bass, and choose its speakers, right in Otto.</p></div>
     <div class="card"><h3>Updates</h3><p>Check for updates, install the new version in one click, or turn the automatic check off.</p></div>
     <div class="card"><h3>New apps</h3><p>The default start level and per-app rules: an app can have its own start level or be left alone. Apps already playing when Otto starts are never touched.</p></div>
   </div>
@@ -206,6 +207,7 @@
 
   <h2>Changelog</h2>
   <div class="log">
+    <div class="ver"><div class="tag">0.6.0</div><ul><li><strong>Otto × FxSound.</strong> Boost now goes through FxSound: no more static, no delay. Settings get an FxSound card: install it, turn it on, pick a preset, tune its effects and speakers.</li><li>The older spare-output boost is now an option you pick, off by default.</li></ul></div>
     <div class="ver"><div class="tag">0.5.0</div><ul><li><strong>Boost above 100 %.</strong> Push an app's slider past 100 % to make just that app louder (up to 200 %, or 150 / 300 % in Settings). Push the master slider past 100 % to make every app louder at once.</li><li>Boost needs a spare output that nobody listens to: VB-CABLE, or Voicemeeter's "VoiceMeeter Input". Otto finds it by itself, sends the boosted app there, records it and plays it louder on your speakers, with a limiter so it doesn't crackle. Without a spare output the sliders stop at 100 % as before.</li><li>Scrolling stops at 100 % once on the way up; the next notch goes into boost. Boosted levels show in green.</li></ul></div>
     <div class="ver"><div class="tag">0.4.5</div><ul><li>Otto has its own lettering: the name is drawn, not typed. The two Ts are faders and their crossbars are the knobs, set at two heights. It's in the settings window, on this page and in the README banner.</li></ul></div>
     <div class="ver"><div class="tag">0.4.4</div><ul><li>New look for the icon: the fader bars are dark green instead of grey, in the tray, the app icon and this page.</li></ul></div>

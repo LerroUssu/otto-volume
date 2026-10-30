@@ -118,6 +118,20 @@ public static class Probe
             };
         });
 
+        Check("fxsound", () =>
+        {
+            var fx = new Otto.Audio.FxSound.FxSoundLink();
+            var st = fx.Installed && Otto.Audio.FxSound.FxSoundLink.Running ? Task.Run(fx.RefreshAsync).GetAwaiter().GetResult() : null;
+            string? signer = null;
+            if (fx.Installed) signer = Otto.Audio.FxSound.FxSoundInstaller.SignedByFxSound(fx.ExePath!, out var why) ? "FxSound, LLC" : why;
+            return new
+            {
+                fx.ExePath, fx.Installed, running = Otto.Audio.FxSound.FxSoundLink.Running, signer,
+                power = st?.Power, preset = st?.SelectedPreset, gain = st?.Equalizer.MasterGain, output = st?.SelectedOutput,
+                presets = st?.Presets.BuiltIn.Count, effects = st?.Effects,
+            };
+        });
+
         Check("autostart", () => AutoStart.IsEnabled());
         Check("trayInspect", () => Otto.Tray.TrayIcon.CanInspect);
 

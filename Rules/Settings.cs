@@ -61,6 +61,8 @@ public sealed class Settings
 
     // Boost above 100 % (needs a spare output such as VB-CABLE or VoiceMeeter Input)
     public bool BoostEnabled { get; set; } = true;
+    /// <summary>FxSound (installed separately) or a spare output Otto records and plays back.</summary>
+    public BoostRoute BoostVia { get; set; } = BoostRoute.FxSound;
     public int BoostMax { get; set; } = 200;
     /// <summary>Output used to carry boosted apps; null = the first virtual cable found.</summary>
     public string? BoostDevice { get; set; }
@@ -129,3 +131,5 @@ public sealed class Settings
         _ => "Alt",
     };
 }
+
+public enum BoostRoute { FxSound, Spare }
