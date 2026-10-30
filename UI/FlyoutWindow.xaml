@@ -134,13 +134,21 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
+                    <Button x:Name="FxPill" Grid.Column="1" Style="{StaticResource PillButton}" Padding="10,4" Margin="8,0,6,0" Click="Fx_Click" Visibility="Collapsed"
+                            ToolTip="Turn FxSound on or off">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="FxGlyph" Text="&#xE7E8;" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="FxText" Text="FxSound"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock x:Name="HintText" Grid.Column="0" Style="{StaticResource DimText}" FontSize="11" Foreground="{StaticResource TextFaintBrush}" VerticalAlignment="Center"
                                Text="Hold Alt and scroll over any window" TextTrimming="CharacterEllipsis"/>
-                    <Button Grid.Column="1" Style="{StaticResource IconButton}" Click="Pin_Click" ToolTip="Keep the mixer open (or just drag it somewhere)" Width="30" Height="30" Padding="0" Margin="0,0,2,0">
+                    <Button Grid.Column="2" Style="{StaticResource IconButton}" Click="Pin_Click" ToolTip="Keep the mixer open (or just drag it somewhere)" Width="30" Height="30" Padding="0" Margin="0,0,2,0">
                         <TextBlock x:Name="PinGlyph" Text="&#xE718;" Style="{StaticResource Glyph}" FontSize="14"/>
                     </Button>
-                    <Button Grid.Column="2" Style="{StaticResource IconButton}" Click="Gear_Click" ToolTip="Settings" Width="30" Height="30" Padding="0">
+                    <Button Grid.Column="3" Style="{StaticResource IconButton}" Click="Gear_Click" ToolTip="Settings" Width="30" Height="30" Padding="0">
                         <TextBlock Text="&#xE713;" Style="{StaticResource Glyph}" FontSize="15"/>
                     </Button>
                 </Grid>

@@ -53,20 +53,42 @@ public sealed class FxSoundLink
     public static string Arg(string option, string value) => $"--{option}=\"{value.Replace("\"", "")}\"";
     public static string Arg(string option, double value) => FormattableString.Invariant($"--{option}={value:0.##}");
 
-    /// <summary>Send options to the running FxSound. Never starts it (a cold start would become the instance and not return).</summary>
+    /// <summary>
+    /// Send options to the running FxSound. Never starts it (a cold start would become the instance and not return).
+    /// FxSound shows its window for every command that lacks --run_minimized, so every command carries it.
+    /// </summary>
     public async Task<bool> SendAsync(params string[] args)
     {
         if (!Installed || !Running || args.Length == 0) return false;
         await _gate.WaitAsync().ConfigureAwait(false);
-        try { return await Task.Run(() => RunExe(string.Join(" ", args), 5000)).ConfigureAwait(false); }
+        try { return await Task.Run(() => RunExe(string.Join(" ", args) + " --run_minimized", 5000)).ConfigureAwait(false); }
         finally { _gate.Release(); }
     }
 
+    /// <summary>Turn FxSound on or off without showing it; starts it hidden (tray only) when it is not running.</summary>
+    public async Task<bool> SetPowerAsync(bool on)
+    {
+        if (!Installed) return false;
+        if (!Running)
+        {
+            if (!on) return true;
+            Start("--run_minimized --power=1");
+            for (int i = 0; i < 40 && !Running; i++) await Task.Delay(100).ConfigureAwait(false);
+            await Task.Delay(1500).ConfigureAwait(false); // let it load its driver before asking for status
+            return await RefreshAsync().ConfigureAwait(false) != null;
+        }
+        bool ok = await SendAsync($"--power={(on ? 1 : 0)}").ConfigureAwait(false);
+        if (ok && Status != null) { Status.Power = on; StatusChanged?.Invoke(); }
+        return ok;
+    }
+
     /// <summary>Start FxSound (or bring its window up when it already runs).</summary>
-    public void Open(bool minimized = false)
+    public void Open() => Start("");
+
+    private void Start(string args)
     {
         if (!Installed) return;
-        try { Process.Start(new ProcessStartInfo(ExePath!, minimized ? "--run_minimized" : "") { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(ExePath!)! }); }
+        try { Process.Start(new ProcessStartInfo(ExePath!, args) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(ExePath!)! }); Log.Write($"[fxsound] start {args}"); }
         catch (Exception ex) { Log.Error("fxsound open", ex); }
     }
 

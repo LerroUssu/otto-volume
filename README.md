@@ -70,6 +70,11 @@ app. Nothing is rerouted or recorded, so there is no delay. Changes go "quieter 
 drop before FxSound's gain rises, and the gain drops before app levels come back. When Otto quits,
 FxSound's gain goes back to yours. Boost needs FxSound turned on; without it the sliders stop at 100 %.
 
+The **FxSound** button at the bottom of the mixer turns FxSound on or off (green = on). If FxSound
+isn't running, Otto starts it hidden: no window, no taskbar button, only its tray icon (drag that icon
+into the ^ overflow once to hide it there too). Otto never brings FxSound's window up; the
+*Open FxSound* button in settings does.
+
 The same card in Otto's settings shows FxSound itself: on/off, its presets, the clarity / ambience /
 surround / dynamic boost / bass sliders and which speakers it plays on. Otto talks to FxSound through
 FxSound's documented command line (`FxSound.exe --power=1`, `--preset=…`, `--status`); it contains

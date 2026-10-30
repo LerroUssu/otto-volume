@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Otto.Audio;
+using Otto.Audio.FxSound;
 using Otto.Native;
 using Otto.Rules;
 using static Otto.Native.NativeMethods;
@@ -22,6 +23,7 @@ public partial class FlyoutWindow : Window
     private DateTime _lastHidden = DateTime.MinValue;
     private POINT _anchor;
     private int _wheelAccum;
+    private bool _fxBusy;
 
     public event Action? SettingsRequested;
     /// <summary>Raised when the flyout becomes open or starts closing (for the click-outside watcher).</summary>
@@ -64,6 +66,7 @@ public partial class FlyoutWindow : Window
         UpdateEmptyState();
         UpdateMasterGlyph();
         UpdatePinGlyph();
+        if (service.Boost?.Fx is { } fx) fx.StatusChanged += () => Dispatcher.BeginInvoke(UpdateFxPill);
     }
 
     // ---- open / close --------------------------------------------------------------------
@@ -80,6 +83,8 @@ public partial class FlyoutWindow : Window
         var s = _settings();
         HintText.Text = $"Hold {s.ModifierLabel} + scroll over any window   ·   {s.Hotkey}";
         _service.MetersEnabled = true;
+        UpdateFxPill();
+        if (_service.Boost?.Fx is { Installed: true } fx && FxSoundLink.Running) _ = fx.RefreshAsync(); // it may have been switched in its own tray menu
         _hiding = false;
         _anchor = anchor;
         SetPinned(false);
@@ -218,7 +223,34 @@ public partial class FlyoutWindow : Window
         MasterPercent.Text = m.Muted ? "Muted" : $"{m.VolumePercent:0}";
     }
 
+    private bool FxOn => FxSoundLink.Running && _service.Boost?.Fx.Status?.Power == true;
+
+    private void UpdateFxPill()
+    {
+        var fx = _service.Boost?.Fx;
+        FxPill.Visibility = fx?.Installed == true ? Visibility.Visible : Visibility.Collapsed;
+        bool on = FxOn;
+        FxPill.Background = (Brush)FindResource(on ? "AccentSoftBrush" : "ElevatedBrush");
+        FxGlyph.Foreground = (Brush)FindResource(on ? "AccentBrush" : "TextDimBrush");
+        FxText.Foreground = (Brush)FindResource(on ? "TextBrush" : "TextDimBrush");
+        FxPill.Opacity = _fxBusy ? 0.6 : 1;
+    }
+
     // ---- handlers ------------------------------------------------------------------------
+
+    private async void Fx_Click(object sender, RoutedEventArgs e)
+    {
+        var fx = _service.Boost?.Fx;
+        if (fx == null || _fxBusy) return;
+        _fxBusy = true; UpdateFxPill();
+        try
+        {
+            await fx.SetPowerAsync(!FxOn);
+            await fx.RefreshAsync();
+            _service.BoostSettingsChanged(); // Windows moves to FxSound's driver and back: boost follows
+        }
+        finally { _fxBusy = false; UpdateFxPill(); }
+    }
 
     private void Mute_Click(object sender, RoutedEventArgs e)
     {

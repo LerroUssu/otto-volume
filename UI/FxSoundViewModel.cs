@@ -84,7 +84,7 @@ public sealed class FxSoundViewModel : ObservableObject, IDisposable
             _editedAt = DateTime.UtcNow;
             Raise(); Raise(nameof(PowerOff));
             // FxSound moves Windows to its own driver when on and back when off; boost follows
-            _ = _fx.SendAsync($"--power={(value ? 1 : 0)}").ContinueWith(_ => _ui.BeginInvoke(_boostChanged));
+            _ = _fx.SetPowerAsync(value).ContinueWith(_ => _ui.BeginInvoke(_boostChanged));
         }
     }
     public bool PowerOff => !Power;
