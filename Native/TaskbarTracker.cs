@@ -37,13 +37,29 @@ public sealed class TaskbarTracker : IDisposable
     public RECT SpeakerRect => _speaker;
     public IReadOnlyList<RECT> Taskbars => _taskbars;
 
+    /// <summary>Inside a taskbar rectangle AND the taskbar is really what is under the cursor
+    /// (a fullscreen or borderless window covering it does not count).</summary>
     public bool IsOverTaskbar(POINT p)
     {
-        foreach (var r in _taskbars) if (Contains(r, p)) return true;
+        foreach (var r in _taskbars) if (Contains(r, p)) return TaskbarIsOnTopAt(p);
         return false;
     }
 
-    public bool IsOverSpeaker(POINT p) => _hasSpeaker && Contains(_speaker, p);
+    public bool IsOverSpeaker(POINT p) => _hasSpeaker && Contains(_speaker, p) && TaskbarIsOnTopAt(p);
+
+    private static readonly uint OwnPid = (uint)Environment.ProcessId;
+
+    /// <summary>Top-level window under the point is a taskbar (or one of Otto's own windows sitting on it).</summary>
+    public bool TaskbarIsOnTopAt(POINT p)
+    {
+        var h = WindowFromPoint(p);
+        if (h == IntPtr.Zero) return false;
+        var root = GetAncestor(h, GA_ROOT);
+        if (root == IntPtr.Zero) root = h;
+        foreach (var tb in _taskbarHwnds) if (tb == root) return true;
+        GetWindowThreadProcessId(root, out var pid);
+        return pid == OwnPid;
+    }
 
     public static bool Contains(RECT r, POINT p) => p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
 

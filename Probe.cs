@@ -147,6 +147,9 @@ public static class Probe
                 speakerFound = tracker.HasSpeaker,
                 speakerRect = tracker.HasSpeaker ? $"{r.left},{r.top}-{r.right},{r.bottom}" : null,
                 thumbnailVisible = TaskbarTracker.ThumbnailRect() != null,
+                // false when a fullscreen/borderless window covers the taskbar there
+                taskbarOnTopAtCenter = tracker.Taskbars.Select(t => tracker.TaskbarIsOnTopAt(new POINT((t.left + t.right) / 2, (t.top + t.bottom) / 2))).ToList(),
+                speakerOnTop = tracker.HasSpeaker ? tracker.TaskbarIsOnTopAt(new POINT((r.left + r.right) / 2, (r.top + r.bottom) / 2)) : (bool?)null,
             };
             tracker.Dispose();
             return result;
