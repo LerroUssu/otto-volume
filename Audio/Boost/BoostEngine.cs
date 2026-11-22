@@ -73,7 +73,9 @@ public sealed class BoostEngine : IDisposable
 
     /// <summary>Boost through FxSound: picked (the default), FxSound running and Windows playing through its driver.</summary>
     public bool ViaFxSound => _settings().BoostEnabled && _settings().BoostVia != BoostRoute.Spare && Fx.Installed && FxSoundLink.Running
-                              && (_render?.FriendlyName.Contains(FxSoundLink.DriverName, StringComparison.OrdinalIgnoreCase) ?? false);
+                              && _renderIsFxSound;
+    /// <summary>Read once per device: FriendlyName is a property-store call and ViaFxSound is asked on every slider tick.</summary>
+    private bool _renderIsFxSound;
     public bool Available => ViaFxSound || (_settings().BoostEnabled && _settings().BoostVia == BoostRoute.Spare && _render != null && _sink != null && _format != null);
     /// <summary>What FxSound adds after Windows' meters.</summary>
     public double OutputGain => ViaFxSound ? _fxBoost.Gain : 1.0;
@@ -111,12 +113,13 @@ public sealed class BoostEngine : IDisposable
     {
         if (_render?.ID == deviceId && deviceId != null) return;
         ReleaseAll();
-        _render?.Dispose(); _render = null; _format = null;
+        _render?.Dispose(); _render = null; _format = null; _renderIsFxSound = false;
         if (deviceId != null)
         {
             try
             {
                 _render = _enumerator.GetDevice(deviceId);
+                try { _renderIsFxSound = _render.FriendlyName.Contains(FxSoundLink.DriverName, StringComparison.OrdinalIgnoreCase); } catch { }
                 using var client = _render.AudioClient;
                 var mix = client.MixFormat;
                 _format = WaveFormat.CreateIeeeFloatWaveFormat(mix.SampleRate, mix.Channels);

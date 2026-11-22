@@ -54,7 +54,8 @@ public sealed class AudioSessionService : IDisposable
         _notifications = new NotificationClient(this);
         try { _enumerator.RegisterEndpointNotificationCallback(_notifications); } catch (Exception ex) { Log.Error("device notifications", ex); }
 
-        _meterTimer = new DispatcherTimer(DispatcherPriority.Render, ui) { Interval = TimeSpan.FromMilliseconds(40) };
+        // Below input: a slider drag must never wait behind a meter frame.
+        _meterTimer = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromMilliseconds(40) };
         _meterTimer.Tick += (_, _) => MeterTick();
         _housekeepingTimer = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromSeconds(3) };
         _housekeepingTimer.Tick += (_, _) => Housekeeping();

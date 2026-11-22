@@ -71,10 +71,13 @@ public partial class FlyoutWindow : Window
 
     // ---- open / close --------------------------------------------------------------------
 
-    public void Toggle(POINT at)
+    /// <param name="fromSpeaker">From the Windows speaker icon: that click is swallowed and never deactivates the
+    /// flyout, so a close right before it is not the same click and must not block opening.</param>
+    public void Toggle(POINT at, bool fromSpeaker = false)
     {
-        if (IsVisible) { if (!_hiding) HideAnimated(); return; } // a toggle during the fade just lets it finish closing
-        if ((DateTime.UtcNow - _lastHidden).TotalMilliseconds < 350) return; // the click on the tray icon already closed us (Deactivated)
+        if (IsVisible && !_hiding) { HideAnimated(); return; }
+        if (IsVisible && !fromSpeaker) return; // a tray toggle during the fade just lets it finish closing
+        if (!fromSpeaker && (DateTime.UtcNow - _lastHidden).TotalMilliseconds < 350) return; // the click on the tray icon already closed us (Deactivated)
         ShowAt(at);
     }
 

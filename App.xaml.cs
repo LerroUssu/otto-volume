@@ -114,7 +114,7 @@ public partial class App : Application
 
         _taskbar = new TaskbarTracker(Dispatcher, () => _service?.Master.VolumePercent ?? -1);
         _gesture = new GestureController(_service, () => _settings, _osd, Dispatcher, _taskbar);
-        _gesture.SpeakerClicked += pt => _flyout?.Toggle(pt);
+        _gesture.SpeakerClicked += pt => _flyout?.Toggle(pt, fromSpeaker: true);
         _gesture.ClickedOutsideFlyout += () => _flyout?.HideIfUnpinned();
         _hotkey = new HotkeyManager();
         _hotkey.Pressed += ToggleFlyout;

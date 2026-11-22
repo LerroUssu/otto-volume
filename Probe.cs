@@ -127,6 +127,8 @@ public static class Probe
             return new
             {
                 fx.ExePath, fx.Installed, running = Otto.Audio.FxSound.FxSoundLink.Running, signer,
+                runningCachedMs = Timed(() => { for (int i = 0; i < 1000; i++) _ = Otto.Audio.FxSound.FxSoundLink.Running; }) / 1000,
+                runningRealMs = Timed(() => Otto.Audio.FxSound.FxSoundLink.RunningNow()),
                 power = st?.Power, preset = st?.SelectedPreset, gain = st?.Equalizer.MasterGain, output = st?.SelectedOutput,
                 presets = st?.Presets.BuiltIn.Count, effects = st?.Effects,
             };
@@ -139,8 +141,16 @@ public static class Probe
         {
             var tracker = new TaskbarTracker(Dispatcher.CurrentDispatcher, () => svc?.Master.VolumePercent ?? -1);
             // the async speaker lookup needs a moment; poll briefly
-            for (int i = 0; i < 40 && !tracker.HasSpeaker; i++) Thread.Sleep(50);
+            for (int i = 0; i < 80 && !tracker.HasSpeaker; i++) Thread.Sleep(50);
+            Thread.Sleep(400);
             var r = tracker.SpeakerRect;
+            var c = new POINT((r.left + r.right) / 2, (r.top + r.bottom) / 2);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < 100; i++) tracker.TaskbarIsOnTopAt(c);
+            double onTopMs = sw.Elapsed.TotalMilliseconds / 100;
+            // the old check, for comparison: WindowFromPoint's root window
+            var wfp = WindowFromPoint(c);
+            var wfpRoot = wfp == IntPtr.Zero ? IntPtr.Zero : GetAncestor(wfp, GA_ROOT);
             var result = new
             {
                 taskbars = tracker.Taskbars.Select(t => $"{t.left},{t.top}-{t.right},{t.bottom}").ToList(),
@@ -149,7 +159,10 @@ public static class Probe
                 thumbnailVisible = TaskbarTracker.ThumbnailRect() != null,
                 // false when a fullscreen/borderless window covers the taskbar there
                 taskbarOnTopAtCenter = tracker.Taskbars.Select(t => tracker.TaskbarIsOnTopAt(new POINT((t.left + t.right) / 2, (t.top + t.bottom) / 2))).ToList(),
-                speakerOnTop = tracker.HasSpeaker ? tracker.TaskbarIsOnTopAt(new POINT((r.left + r.right) / 2, (r.top + r.bottom) / 2)) : (bool?)null,
+                speakerOnTop = tracker.HasSpeaker ? tracker.TaskbarIsOnTopAt(c) : (bool?)null,
+                speakerOnTopOldCheck = tracker.HasSpeaker ? tracker.Taskbars.Count > 0 && GetClassNameOf(wfpRoot) is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" : (bool?)null,
+                onTopCheckMs = Math.Round(onTopMs, 3),
+                speakerTooltipFound = tracker.SpeakerTooltipKnown,
             };
             tracker.Dispose();
             return result;
@@ -205,5 +218,12 @@ public static class Probe
         File.WriteAllText(outPath, json);
         Log.Write($"[probe] wrote {outPath} ({failures} failures)");
         return failures == 0 ? 0 : 1;
+    }
+
+    private static double Timed(Action a)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        a();
+        return Math.Round(sw.Elapsed.TotalMilliseconds, 3);
     }
 }

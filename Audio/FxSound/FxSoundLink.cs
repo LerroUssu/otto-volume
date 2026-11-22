@@ -18,12 +18,54 @@ public sealed class FxSoundLink
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public string? ExePath { get; private set; }
-    public bool Installed => ExePath != null && File.Exists(ExePath);
-    public static bool Running => Process.GetProcessesByName("FxSound").Length > 0;
+    private bool _installed;
+    private long _installedCheckedAt = -100_000;
+
+    /// <summary>Cached for 5 s: the sliders and meters ask many times a second.</summary>
+    public bool Installed
+    {
+        get
+        {
+            long now = Environment.TickCount64;
+            if (now - _installedCheckedAt > 5000) { _installed = ExePath != null && File.Exists(ExePath); _installedCheckedAt = now; }
+            return _installed;
+        }
+    }
+
+    private static volatile bool _running;
+    private static long _runningCheckedAt;
+    private static int _runningRefreshBusy;
+
+    /// <summary>
+    /// Whether FxSound runs, as of at most ~1 s ago. Enumerating every process takes 5-30 ms, and the sliders,
+    /// the meters (25 times a second) and the boost math all ask: the real check runs on a worker, never the UI.
+    /// </summary>
+    public static bool Running
+    {
+        get
+        {
+            if (Environment.TickCount64 - Interlocked.Read(ref _runningCheckedAt) > 1000 && Interlocked.Exchange(ref _runningRefreshBusy, 1) == 0)
+                Task.Run(() => { try { RunningNow(); } finally { Interlocked.Exchange(ref _runningRefreshBusy, 0); } });
+            return _running;
+        }
+    }
+
+    /// <summary>The real check (slow-ish): use it off the UI thread, where an up-to-date answer matters.</summary>
+    public static bool RunningNow()
+    {
+        var procs = Process.GetProcessesByName("FxSound");
+        bool r = procs.Length > 0;
+        foreach (var p in procs) p.Dispose();
+        _running = r;
+        Interlocked.Exchange(ref _runningCheckedAt, Environment.TickCount64);
+        return r;
+    }
     public FxStatus? Status { get; private set; }
 
     /// <summary>New status read (any thread).</summary>
     public event Action? StatusChanged;
+
+    static FxSoundLink() { RunningNow(); }
 
     public FxSoundLink() { Locate(); }
 
@@ -61,7 +103,7 @@ public sealed class FxSoundLink
     {
         if (!Installed || !Running || args.Length == 0) return false;
         await _gate.WaitAsync().ConfigureAwait(false);
-        try { return await Task.Run(() => RunExe(string.Join(" ", args) + " --run_minimized", 5000)).ConfigureAwait(false); }
+        try { return await Task.Run(() => RunningNow() && RunExe(string.Join(" ", args) + " --run_minimized", 5000)).ConfigureAwait(false); } // fresh check: a cold start would become the instance
         finally { _gate.Release(); }
     }
 
@@ -73,7 +115,7 @@ public sealed class FxSoundLink
         {
             if (!on) return true;
             Start("--run_minimized --power=1");
-            for (int i = 0; i < 40 && !Running; i++) await Task.Delay(100).ConfigureAwait(false);
+            for (int i = 0; i < 40 && !RunningNow(); i++) await Task.Delay(100).ConfigureAwait(false);
             await Task.Delay(1500).ConfigureAwait(false); // let it load its driver before asking for status
             return await RefreshAsync().ConfigureAwait(false) != null;
         }
@@ -118,7 +160,7 @@ public sealed class FxSoundLink
         try
         {
             var before = File.Exists(StatusPath) ? File.GetLastWriteTimeUtc(StatusPath) : DateTime.MinValue;
-            await Task.Run(() => RunExe("--status", 5000)).ConfigureAwait(false);
+            if (!await Task.Run(() => RunningNow() && RunExe("--status", 5000)).ConfigureAwait(false)) { Status = null; StatusChanged?.Invoke(); return null; }
             for (int i = 0; i < 30; i++)
             {
                 try

@@ -23,6 +23,12 @@ public sealed class MouseWheelHook : IDisposable
     private bool _wasOverTaskbar;
     private bool _swallowingSpeakerClick;
     private long _lastHoverTick;
+    private bool _overSpeaker;
+    private long _lastCallbackTick;
+    private POINT _watchPos;
+    private long _watchTick;
+    private long _lastReinstallLog;
+    private int _reinstalls;
     private RECT _flyoutRect;
     private volatile bool _hasFlyoutRect;
 
@@ -70,8 +76,15 @@ public sealed class MouseWheelHook : IDisposable
         _ready.Set();
         if (_hook == IntPtr.Zero) return;
 
+        // Watchdog: Windows silently removes a low-level hook whose callback once ran past LowLevelHooksTimeout
+        // (a GC pause is enough), and the speaker icon then opens Windows' own flyout again. Every 2 s: if the
+        // cursor moved but the hook was not called since the last check, it is gone: install it again.
+        SetTimer(IntPtr.Zero, UIntPtr.Zero, 2000, IntPtr.Zero);
+        GetCursorPos(out _watchPos);
+        _watchTick = Environment.TickCount64;
         while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
         {
+            if (msg.message == WM_TIMER && msg.hwnd == IntPtr.Zero) { Watchdog(); continue; }
             TranslateMessage(ref msg);
             DispatchMessage(ref msg);
         }
@@ -79,8 +92,33 @@ public sealed class MouseWheelHook : IDisposable
         _hook = IntPtr.Zero;
     }
 
+    private void Watchdog()
+    {
+        if (_disposed) return;
+        if (!GetCursorPos(out var p)) return; // locked / secure desktop
+        long now = Environment.TickCount64;
+        bool moved = p.x != _watchPos.x || p.y != _watchPos.y;
+        if (moved && Interlocked.Read(ref _lastCallbackTick) < _watchTick)
+        {
+            UnhookWindowsHookEx(_hook); // fails harmlessly when Windows already removed it
+            _hook = SetWindowsHookEx(WH_MOUSE_LL, _proc, GetModuleHandle(null), 0);
+            _reinstalls++;
+            if (now - _lastReinstallLog > 60_000)
+            {
+                _lastReinstallLog = now;
+                Log.Write($"[hook] mouse hook was not called while the cursor moved: installed again ({_reinstalls} so far, ok={_hook != IntPtr.Zero})");
+            }
+        }
+        _watchPos = p;
+        _watchTick = now;
+    }
+
+    /// <summary>How many times the watchdog had to install the hook again.</summary>
+    public int Reinstalls => _reinstalls;
+
     private IntPtr Callback(int nCode, IntPtr wParam, IntPtr lParam)
     {
+        Interlocked.Exchange(ref _lastCallbackTick, Environment.TickCount64);
         if (nCode >= 0 && Enabled && !_disposed)
         {
             try
@@ -106,8 +144,12 @@ public sealed class MouseWheelHook : IDisposable
                     }
                     case WM_MOUSEMOVE:
                     {
-                        if (!TaskbarHoverEnabled || Taskbar == null) break;
+                        if (Taskbar == null) break;
                         var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                        // the speaker icon opens Otto: hovering it shows nothing (no Windows tooltip)
+                        bool overSpeaker = SpeakerClickEnabled && Taskbar.IsInSpeakerRect(info.pt);
+                        if (overSpeaker != _overSpeaker) { _overSpeaker = overSpeaker; Taskbar.SpeakerHover(overSpeaker); }
+                        if (!TaskbarHoverEnabled) break;
                         bool inside = Taskbar.IsOverTaskbar(info.pt);
                         long now = Environment.TickCount64;
                         if (inside && now - _lastHoverTick >= 40) { _lastHoverTick = now; TaskbarHover?.Invoke(info.pt, true); }
@@ -126,9 +168,9 @@ public sealed class MouseWheelHook : IDisposable
                     case WM_LBUTTONDOWN:
                     {
                         var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                        // A click on the speaker icon toggles the flyout itself (on button up): it is not a click outside.
+                        if (SpeakerClickEnabled && Taskbar != null && Taskbar.IsOverSpeaker(info.pt)) { _swallowingSpeakerClick = true; return (IntPtr)1; }
                         if (_hasFlyoutRect && !TaskbarTracker.Contains(_flyoutRect, info.pt)) ClickOutside?.Invoke();
-                        if (!SpeakerClickEnabled || Taskbar == null) break;
-                        if (Taskbar.IsOverSpeaker(info.pt)) { _swallowingSpeakerClick = true; return (IntPtr)1; }
                         break;
                     }
                     case WM_LBUTTONUP:
@@ -150,6 +192,7 @@ public sealed class MouseWheelHook : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        if (_overSpeaker) Taskbar?.SpeakerHover(false);
         if (_threadId != 0) PostThreadMessage(_threadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
         _thread.Join(TimeSpan.FromSeconds(2));
         _ready.Dispose();
